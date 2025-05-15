@@ -1,0 +1,297 @@
+/* Dark Theme Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    margin: 0;
+    padding: 20px;
+    background-color: #121212; /* Dark background */
+    color: #e0e0e0; /* Light text */
+    line-height: 1.6;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #bb86fc; /* Purple accent color */
+}
+
+header h1 {
+    font-size: 2.8em;
+    font-weight: 300;
+    letter-spacing: -1px;
+}
+
+#soundboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px;
+    background: #1e1e1e; /* Darker container background */
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+#controls-area {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #2c2c2c; /* Even darker controls area */
+    border-radius: 8px;
+    gap: 20px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.control-group label {
+    font-weight: 500;
+    color: #9fa8da; /* Light blue-gray */
+    font-size: 0.9em;
+}
+
+#controls-area input[type="file"],
+#controls-area input[type="text"],
+#controls-area select {
+    border: 1px solid #546e7a;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #37474f;
+    color: #e0e0e0;
+    font-size: 0.95em;
+    min-width: 180px;
+}
+
+#controls-area input[type="text"] {
+    width: 250px;
+}
+
+#buttons-area {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 15px;
+    padding-top: 10px;
+    min-height: 100px;
+}
+
+#buttons-area p {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #bdbdbd;
+    font-size: 1.1em;
+}
+
+.sound-button, #stop-all-btn, #edit-mode-btn {
+    padding: 15px 10px;
+    font-size: 0.9em;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    text-align: center;
+    word-break: break-word;
+    color: white;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sound-button {
+    background-color: #3f51b5; /* Indigo */
+}
+
+.sound-button:hover {
+    background-color: #303f9f; /* Darker indigo */
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+}
+
+.sound-button:active {
+    transform: translateY(0px);
+    background-color: #283593; /* Even darker indigo */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#stop-all-btn {
+    background-color: #d32f2f; /* Red */
+}
+
+#stop-all-btn:hover {
+    background-color: #c62828; /* Darker red */
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+}
+
+#stop-all-btn:active {
+    transform: translateY(0px);
+    background-color: #b71c1c; /* Even darker red */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Accessibility class for screen-reader only text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #37474f;
+    font-size: 0.9em;
+    color: #90a4ae;
+}
+
+/* Style for the edit icon */
+.edit-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+    font-size: 0.8em;
+    color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+    transition: color 0.2s ease-in-out;
+}
+
+.edit-icon:hover {
+    color: rgba(0, 0, 0, 0.8); /* Darker on hover */
+}
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.7); /* Darker modal background */
+}
+
+/* Modal Content/Box */
+.modal-content {
+    background-color: #303030; /* Dark modal content */
+    margin: 10% auto; /* Adjust margin */
+    padding: 20px;
+    border: 1px solid #546e7a;
+    width: 50%; /* Adjust width */
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Modal Grid Layout */
+.modal-grid {
+    display: grid;
+    grid-template-columns: auto 1fr; /* Label and input */
+    gap: 12px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.modal-grid label {
+    font-weight: 500;
+    color: #cfd8dc; /* Light gray label */
+    text-align: right;
+    padding-right: 10px;
+}
+
+.modal-grid input[type="text"],
+.modal-grid input[type="color"],
+.modal-grid select {
+    padding: 10px;
+    border: 1px solid #546e7a;
+    border-radius: 6px;
+    font-size: 1em;
+    color: #e0e0e0;
+    background-color: #455a64; /* Dark input background */
+    width: 100%;
+    box-sizing: border-box; /* Ensure padding doesn't affect width */
+}
+
+.modal-grid input[type="text"]:focus,
+.modal-grid input[type="color"]:focus,
+.modal-grid select:focus {
+    border-color: #64b5f6;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(100, 181, 246, 0.25);
+}
+
+/* The Close Button */
+.close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #90a4ae;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Save Button Style */
+#saveButton {
+    background-color: #4caf50; /* Green */
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.2s ease-in-out;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: block;
+    margin: 20px auto 0; /* Center the button */
+}
+
+#saveButton:hover {
+    background-color: #218838;
+}
+
+#saveButton:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5);
+}
+
+/* Style for the Edit Mode toggle button */
+#edit-mode-btn {
+    background-color: #6c757d; /* Gray */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 0.9em;
+    cursor: pointer;
+    border-radius: 5px;
+	min-width: 120px;
+}
+
+#edit-mode-btn:hover {
+    background-color: #5a6268; /* Darker gray */
+}

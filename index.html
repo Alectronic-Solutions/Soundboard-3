@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Best Soundboard Ever</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <header>
+        <h1>The Best Soundboard Ever</h1>
+    </header>
+
+    <main id="soundboard-container">
+        <section id="controls-area" aria-labelledby="controls-heading">
+            <h2 id="controls-heading" class="sr-only">Soundboard Controls</h2>
+
+            <div class="control-group">
+                <label for="add-sound-input">Add .ogg Sound:</label>
+                <input type="file" id="add-sound-input" accept=".ogg,audio/ogg" aria-describedby="file-input-help">
+                <p id="file-input-help" class="sr-only">Select an OGG audio file from your device to add it to the soundboard.</p>
+            </div>
+
+            <div class="control-group">
+                <label for="search-input">Search Sounds:</label>
+                <input type="text" id="search-input" placeholder="Enter sound name...">
+            </div>
+
+            <div class="control-group" id="sort-filter-area">
+                <div>
+                    <label for="sort-by">Sort By:</label>
+                    <select id="sort-by">
+                        <option value="default">Default (Added Order)</option>
+                        <option value="alphabetical-asc">Alphabetical (A-Z)</option>
+                        <option value="alphabetical-desc">Alphabetical (Z-A)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-category">Filter By:</label>
+                    <select id="filter-category">
+                        <option value="all">All Categories</option>
+                        {/* Categories will be populated by JavaScript */}
+                    </select>
+                </div>
+            </div>
+			
+			<div class="control-group">
+                <button id="stop-all-btn" aria-label="Stop all currently playing sounds">Stop All Sounds</button>
+            </div>
+			
+			<div class="control-group">
+                <button id="edit-mode-btn">Edit Mode: Off</button>
+            </div>
+        </section>
+
+        <section id="buttons-area" aria-label="Soundboard buttons">
+            {/* Sound buttons will be dynamically inserted here by JavaScript */}
+            <p id="loading-message">Loading sounds...</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>Built with the Web Audio API. Double-click a button to edit its text and color.</p>
+    </footer>
+
+	<!-- The Modal -->
+	<div id="editModal" class="modal">
+		<div class="modal-content">
+			<span class="close">&times;</span>
+			<h2>Edit Sound Button</h2>
+
+			<div class="modal-grid">
+				<label for="editText">Text:</label>
+				<input type="text" id="editText" name="editText">
+
+				<label for="editColor">Background Color:</label>
+				<input type="color" id="editColor" name="editColor">
+
+				<label for="editTextColor">Text Color:</label>
+				<input type="color" id="editTextColor" name="editTextColor">
+
+				<label for="editCategory">Category:</label>
+				<select id="editCategory" name="editCategory">
+					<option value="General">General</option>
+					<option value="Trumpism">Trumpism</option>
+					<option value="Money">Money</option>
+					<option value="Music & Themes">Music & Themes</option>
+					<option value="Bodily Functions">Bodily Functions</option>
+					<option value="Sound Effects">Sound Effects</option>
+					<option value="Gaming">Gaming</option>
+					<option value="Crowd & Reactions">Crowd & Reactions</option>
+					<option value="Adult">Adult</option>
+					<option value="Controversial">Controversial</option>
+					<option value="User Added">User Added</option>
+				</select>
+			</div>
+
+			<button id="saveButton">Save</button>
+		</div>
+	</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

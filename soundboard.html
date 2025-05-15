@@ -1,0 +1,31 @@
+<div x-data="soundboardApp()" x-init="init()">
+    <input type="text" x-model="searchText" placeholder="Search sounds...">
+
+    <select x-model="selectedCategory">
+        <option value="">All Categories</option>
+        <template x-for="category in uniqueCategories" :key="category">
+            <option :value="category" x-text="category"></option>
+        </template>
+    </select>
+
+    <select x-model="sortBy">
+        <option value="order">Order</option>
+        <option value="name">Name</option>
+        <option value="category">Category</option>
+    </select>
+    <button @click="sortDirection = sortDirection === 'asc'? 'desc' : 'asc'" x-text="sortDirection === 'asc'? 'Asc' : 'Desc'"></button>
+
+    <button @click="stopAllSounds()">Stop All Sounds</button>
+
+    <div id="soundboard-container" x-sort="handleOrderChange">
+        <template x-for="item in filteredAndSortedItems" :key="item.id">
+            <div class="sound-button-wrapper" x-sort:item="item.id">
+                <button @click="playSound(item)" :style="{ backgroundColor: item.color }">
+                    <span x-show="!item.editingName" @click="item.editingName = true; $nextTick(() => $refs[`nameInput_${item.id}`].focus())" x-text="item.name"></span>
+                    <input type="text" x-show="item.editingName" x-model="item.name" @blur="item.editingName = false; saveState()" @keydown.enter="item.editingName = false; saveState()" :x-ref="`nameInput_${item.id}`" class="name-input">
+                </button>
+                <input type="color" x-model="item.color" @input="saveState()" title="Edit button color">
+            </div>
+        </template>
+    </div>
+</div>
