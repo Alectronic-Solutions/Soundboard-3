@@ -356,14 +356,6 @@ function formatTime(seconds) {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-// Add restart functionality
-const restartButton = document.getElementById('restart-button');
-restartButton.addEventListener('click', () => {
-    if (currentSoundId) {
-        playSound(currentSoundId); // Restart the current sound
-    }
-});
-
 // --- UI and Interaction Functions ---
 const buttonsArea = document.getElementById('buttons-area');
 
@@ -702,5 +694,11 @@ document.addEventListener('DOMContentLoaded', () => {
     preloadInitialSounds().then(() => {
         loadEditsFromLocalStorage();
         renderButtonsWithSortAndFilter();
+    }).catch(error => {
+        console.error("Error during initialization:", error);
+        const loadingMessage = document.getElementById('loading-message');
+        if (loadingMessage) {
+            loadingMessage.textContent = "Initialization failed. Check console for details.";
+        }
     });
 });
