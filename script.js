@@ -231,9 +231,10 @@ async function preloadInitialSounds() {
         console.error('An error occurred during the preloading of all sounds:', error);
         if(loadingMessage) loadingMessage.textContent = 'Error loading sounds.';
     }
+	loadEditsFromLocalStorage();
     loadUserSoundsFromLocalStorage();
     populateCategoryFilter();
-    // Do not call renderButtonsWithSortAndFilter here; it will be called after edits are loaded
+    renderButtonsWithSortAndFilter();
 }
 
 function saveUserSoundsToLocalStorage() {
