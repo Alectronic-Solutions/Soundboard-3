@@ -327,6 +327,38 @@ function createSoundButton(soundObject) {
 	button.style.color = soundObject.textColor || getTextColor(soundObject.color); // Use stored text color or calculate
     button.setAttribute('data-sound-id', soundObject.id);
 
+    // --- Drag and Drop ---
+    button.setAttribute('draggable', 'true');
+    button.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', soundObject.id);
+        button.classList.add('dragging');
+    });
+    button.addEventListener('dragend', () => {
+        button.classList.remove('dragging');
+    });
+
+    button.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        button.classList.add('drag-over');
+    });
+    button.addEventListener('dragleave', () => {
+        button.classList.remove('drag-over');
+    });
+    button.addEventListener('drop', (e) => {
+        e.preventDefault();
+        button.classList.remove('drag-over');
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if (draggedId === soundObject.id) return;
+        const draggedIdx = allConfiguredSounds.findIndex(s => s.id === draggedId);
+        const targetIdx = allConfiguredSounds.findIndex(s => s.id === soundObject.id);
+        if (draggedIdx === -1 || targetIdx === -1) return;
+        // Move dragged sound to new position
+        const [draggedSound] = allConfiguredSounds.splice(draggedIdx, 1);
+        allConfiguredSounds.splice(targetIdx, 0, draggedSound);
+        saveEditsToLocalStorage();
+        renderButtonsWithSortAndFilter();
+    });
+
     button.addEventListener('click', () => {
         if (editMode) {
             openEditModal(soundObject, button);
@@ -515,16 +547,13 @@ function renderButtonsWithSortAndFilter() {
         });
     }
 
-    // 3. Sort
-    switch (sortBy) {
-        case 'alphabetical-asc':
-            soundsToDisplay.sort((a, b) => (a.customText || a.name).localeCompare(b.customText || b.name));
-            break;
-        case 'alphabetical-desc':
-            soundsToDisplay.sort((a, b) => (b.customText || b.name).localeCompare(a.customText || a.name));
-            break;
-        // 'default' case doesn't require sorting as it's original order
+    // 3. Sort (skip if drag-and-drop order is used)
+    if (sortBy === 'alphabetical-asc') {
+        soundsToDisplay.sort((a, b) => (a.customText || a.name).localeCompare(b.customText || b.name));
+    } else if (sortBy === 'alphabetical-desc') {
+        soundsToDisplay.sort((a, b) => (b.customText || b.name).localeCompare(a.customText || a.name));
     }
+    // If sortBy is 'default', keep drag-and-drop order
 
     buttonsArea.innerHTML = ''; // Clear current buttons
 
@@ -542,9 +571,8 @@ function renderButtonsWithSortAndFilter() {
     saveEditsToLocalStorage();
 }
 
-// Save all edits (text, color, text color, category) to localStorage
+// Save all edits and order to localStorage
 function saveEditsToLocalStorage() {
-    // Only save id, customText, color, textColor, category for all sounds
     const edits = {};
     allConfiguredSounds.forEach(sound => {
         edits[sound.id] = {
@@ -555,11 +583,15 @@ function saveEditsToLocalStorage() {
         };
     });
     localStorage.setItem('soundEdits', JSON.stringify(edits));
+    // Save order as array of ids
+    localStorage.setItem('soundOrder', JSON.stringify(allConfiguredSounds.map(s => s.id)));
 }
 
-// Load all edits from localStorage and apply to allConfiguredSounds
+// Load all edits and order from localStorage and apply to allConfiguredSounds
 function loadEditsFromLocalStorage() {
     const edits = JSON.parse(localStorage.getItem('soundEdits') || '{}');
+    const order = JSON.parse(localStorage.getItem('soundOrder') || '[]');
+    // Apply edits
     allConfiguredSounds.forEach(sound => {
         if (edits[sound.id]) {
             sound.customText = edits[sound.id].customText || sound.customText;
@@ -568,6 +600,17 @@ function loadEditsFromLocalStorage() {
             sound.category = edits[sound.id].category || sound.category;
         }
     });
+    // Apply order
+    if (order.length > 0) {
+        allConfiguredSounds.sort((a, b) => {
+            const ia = order.indexOf(a.id);
+            const ib = order.indexOf(b.id);
+            if (ia === -1 && ib === -1) return 0;
+            if (ia === -1) return 1;
+            if (ib === -1) return -1;
+            return ia - ib;
+        });
+    }
 }
 
 // --- Event Listeners Setup ---

@@ -118,6 +118,16 @@ header h1 {
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+.sound-button.dragging {
+    opacity: 0.5;
+    border: 2px dashed #90caf9;
+}
+
+.sound-button.drag-over {
+    outline: 2px solid #ffb300;
+    z-index: 2;
+}
+
 #stop-all-btn {
     background-color: #d32f2f; /* Red */
 }
