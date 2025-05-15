@@ -231,9 +231,9 @@ async function preloadInitialSounds() {
         console.error('An error occurred during the preloading of all sounds:', error);
         if(loadingMessage) loadingMessage.textContent = 'Error loading sounds.';
     }
-	loadUserSoundsFromLocalStorage();
+    loadUserSoundsFromLocalStorage();
     populateCategoryFilter();
-    renderButtonsWithSortAndFilter(); // Render after attempting to load all
+    // Do not call renderButtonsWithSortAndFilter here; it will be called after edits are loaded
 }
 
 function saveUserSoundsToLocalStorage() {
@@ -366,6 +366,7 @@ function openEditModal(soundObject, button) {
 		soundObject.textColor = editTextColor.value;
         soundObject.category = editCategory.value;
         closeEditModal();
+        saveEditsToLocalStorage();
         populateCategoryFilter();
         renderButtonsWithSortAndFilter();
     }
@@ -537,6 +538,36 @@ function renderButtonsWithSortAndFilter() {
              buttonsArea.innerHTML = '<p>No sounds match your current filters.</p>';
         }
     }
+    // Save edits after rendering to persist any changes from drag/drop or other UI actions
+    saveEditsToLocalStorage();
+}
+
+// Save all edits (text, color, text color, category) to localStorage
+function saveEditsToLocalStorage() {
+    // Only save id, customText, color, textColor, category for all sounds
+    const edits = {};
+    allConfiguredSounds.forEach(sound => {
+        edits[sound.id] = {
+            customText: sound.customText,
+            color: sound.color,
+            textColor: sound.textColor,
+            category: sound.category
+        };
+    });
+    localStorage.setItem('soundEdits', JSON.stringify(edits));
+}
+
+// Load all edits from localStorage and apply to allConfiguredSounds
+function loadEditsFromLocalStorage() {
+    const edits = JSON.parse(localStorage.getItem('soundEdits') || '{}');
+    allConfiguredSounds.forEach(sound => {
+        if (edits[sound.id]) {
+            sound.customText = edits[sound.id].customText || sound.customText;
+            sound.color = edits[sound.id].color || sound.color;
+            sound.textColor = edits[sound.id].textColor || sound.textColor;
+            sound.category = edits[sound.id].category || sound.category;
+        }
+    });
 }
 
 // --- Event Listeners Setup ---
@@ -575,5 +606,8 @@ document.addEventListener('DOMContentLoaded', () => {
         filterCategorySelect.addEventListener('change', renderButtonsWithSortAndFilter);
     }
 
-    preloadInitialSounds(); // Load initial sounds and render
+    preloadInitialSounds().then(() => {
+        loadEditsFromLocalStorage();
+        renderButtonsWithSortAndFilter();
+    });
 });
