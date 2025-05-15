@@ -347,28 +347,6 @@ footer {
     background-color: #1565c0;
 }
 
-/* Soundbar styles */
-#soundbar-container {
-    width: 100%;
-    max-width: 900px;
-    margin: 30px auto 0 auto;
-    padding: 0 10px 10px 10px;
-    background: transparent;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#soundbar {
-    width: 100%;
-    max-width: 800px;
-    height: 40px;
-    background: #232323;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    display: block;
-}
-
 /* Playback controls styles */
 #playback-controls {
     text-align: center;

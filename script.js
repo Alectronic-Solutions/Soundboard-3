@@ -270,59 +270,6 @@ async function loadUserSoundsFromLocalStorage() {
     }
 }
 
-let analyser, soundbarCanvas, soundbarCtx, animationId;
-
-function setupSoundbar() {
-    soundbarCanvas = document.getElementById('soundbar');
-    if (!soundbarCanvas) return;
-    soundbarCtx = soundbarCanvas.getContext('2d');
-    if (!audioContext) return;
-    if (!analyser) {
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 128;
-    }
-}
-
-function connectAnalyser(sourceNode) {
-    if (!analyser) setupSoundbar();
-    if (analyser) {
-        sourceNode.connect(analyser);
-        analyser.connect(audioContext.destination);
-        drawSoundbar();
-    } else {
-        sourceNode.connect(audioContext.destination);
-    }
-}
-
-function drawSoundbar() {
-    if (!analyser || !soundbarCtx) return;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyser.getByteFrequencyData(dataArray);
-
-    soundbarCtx.clearRect(0, 0, soundbarCanvas.width, soundbarCanvas.height);
-
-    const barWidth = (soundbarCanvas.width / bufferLength) * 1.5;
-    let x = 0;
-    for (let i = 0; i < bufferLength; i++) {
-        const barHeight = dataArray[i] / 2;
-        soundbarCtx.fillStyle = '#90caf9';
-        soundbarCtx.fillRect(x, soundbarCanvas.height - barHeight, barWidth, barHeight);
-        x += barWidth + 1;
-    }
-    animationId = requestAnimationFrame(drawSoundbar);
-}
-
-function stopSoundbar() {
-    if (animationId) cancelAnimationFrame(animationId);
-    if (soundbarCtx && soundbarCanvas) {
-        soundbarCtx.clearRect(0, 0, soundbarCanvas.width, soundbarCanvas.height);
-    }
-    if (analyser && audioContext) {
-        try { analyser.disconnect(); } catch {}
-    }
-}
-
 let currentSoundSource = null; // Track the currently playing source
 let currentSoundId = null; // Track the currently playing sound ID
 
@@ -347,8 +294,7 @@ function playSound(soundId) {
 
     const source = audioContext.createBufferSource();
     source.buffer = audioBuffer;
-    setupSoundbar();
-    connectAnalyser(source);
+    source.connect(audioContext.destination);
 
     // Track the current sound
     currentSoundSource = source;
@@ -400,7 +346,6 @@ function stopAllSounds() {
     activeSources.length = 0; // Clear the array
     currentSoundSource = null;
     currentSoundId = null;
-    stopSoundbar();
     console.log("Attempted to stop all active sounds.");
 }
 
@@ -757,5 +702,4 @@ document.addEventListener('DOMContentLoaded', () => {
         loadEditsFromLocalStorage();
         renderButtonsWithSortAndFilter();
     });
-    setupSoundbar();
 });
