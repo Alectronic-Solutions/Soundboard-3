@@ -8,7 +8,6 @@
 </head>
 <body class="dark-theme">
     <header>
-        <h1>The Best Soundboard Ever</h1>
     </header>
 
     <main id="soundboard-container">
@@ -43,12 +42,9 @@
                     </select>
                 </div>
             </div>
-			
-			<div class="control-group">
+
+            <div class="control-group control-group-right">
                 <button id="stop-all-btn" aria-label="Stop all currently playing sounds">Stop All Sounds</button>
-            </div>
-			
-			<div class="control-group">
                 <button id="edit-mode-btn">Edit Mode: Off</button>
             </div>
         </section>
@@ -63,41 +59,45 @@
         <p>Built with the Web Audio API. Double-click a button to edit its text and color.</p>
     </footer>
 
-	<!-- The Modal -->
-	<div id="editModal" class="modal">
-		<div class="modal-content">
-			<span class="close">&times;</span>
-			<h2>Edit Sound Button</h2>
+    <div id="soundbar-container">
+        <canvas id="soundbar" width="800" height="40"></canvas>
+    </div>
 
-			<div class="modal-grid">
-				<label for="editText">Text:</label>
-				<input type="text" id="editText" name="editText">
+    <!-- The Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Sound Button</h2>
 
-				<label for="editColor">Background Color:</label>
-				<input type="color" id="editColor" name="editColor">
+            <div class="modal-grid">
+                <label for="editText">Text:</label>
+                <input type="text" id="editText" name="editText">
 
-				<label for="editTextColor">Text Color:</label>
-				<input type="color" id="editTextColor" name="editTextColor">
+                <label for="editColor">Background Color:</label>
+                <input type="color" id="editColor" name="editColor">
 
-				<label for="editCategory">Category:</label>
-				<select id="editCategory" name="editCategory">
-					<option value="General">General</option>
-					<option value="Trumpism">Trumpism</option>
-					<option value="Money">Money</option>
-					<option value="Music & Themes">Music & Themes</option>
-					<option value="Bodily Functions">Bodily Functions</option>
-					<option value="Sound Effects">Sound Effects</option>
-					<option value="Gaming">Gaming</option>
-					<option value="Crowd & Reactions">Crowd & Reactions</option>
-					<option value="Adult">Adult</option>
-					<option value="Controversial">Controversial</option>
-					<option value="User Added">User Added</option>
-				</select>
-			</div>
+                <label for="editTextColor">Text Color:</label>
+                <input type="color" id="editTextColor" name="editTextColor">
 
-			<button id="saveButton">Save</button>
-		</div>
-	</div>
+                <label for="editCategory">Category:</label>
+                <select id="editCategory" name="editCategory">
+                    <option value="General">General</option>
+                    <option value="Trumpism">Trumpism</option>
+                    <option value="Money">Money</option>
+                    <option value="Music & Themes">Music & Themes</option>
+                    <option value="Bodily Functions">Bodily Functions</option>
+                    <option value="Sound Effects">Sound Effects</option>
+                    <option value="Gaming">Gaming</option>
+                    <option value="Crowd & Reactions">Crowd & Reactions</option>
+                    <option value="Adult">Adult</option>
+                    <option value="Controversial">Controversial</option>
+                    <option value="User Added">User Added</option>
+                </select>
+            </div>
+
+            <button id="saveButton">Save</button>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
