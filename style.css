@@ -368,3 +368,30 @@ footer {
     box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     display: block;
 }
+
+/* Playback controls styles */
+#playback-controls {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.9em;
+    color: #90a4ae;
+}
+
+#playback-controls span {
+    margin: 0 5px;
+}
+
+#restart-button {
+    background-color: #424242;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+#restart-button:hover {
+    background-color: #333;
+}

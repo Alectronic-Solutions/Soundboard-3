@@ -323,6 +323,9 @@ function stopSoundbar() {
     }
 }
 
+let currentSoundSource = null; // Track the currently playing source
+let currentSoundId = null; // Track the currently playing sound ID
+
 function playSound(soundId) {
     if (!audioContext || audioContext.state !== 'running') {
         console.warn("AudioContext not active. Attempting to initialize/resume...");
@@ -339,20 +342,48 @@ function playSound(soundId) {
         return;
     }
 
+    // Stop any currently playing sound
+    stopAllSounds();
+
     const source = audioContext.createBufferSource();
     source.buffer = audioBuffer;
     setupSoundbar();
     connectAnalyser(source);
 
+    // Track the current sound
+    currentSoundSource = source;
+    currentSoundId = soundId;
+
     source.start(0);
     activeSources.push(source);
+
+    // Update total duration
+    const totalDurationElement = document.getElementById('total-duration');
+    totalDurationElement.textContent = formatTime(audioBuffer.duration);
+
+    // Update current time
+    const currentTimeElement = document.getElementById('current-time');
+    let startTime = audioContext.currentTime; // Capture start time
+
+    const updateTime = () => {
+        if (currentSoundSource && activeSources.includes(currentSoundSource)) {
+            const elapsedTime = audioContext.currentTime - startTime;
+            currentTimeElement.textContent = formatTime(elapsedTime);
+            requestAnimationFrame(updateTime);
+        } else {
+            currentTimeElement.textContent = '0:00';
+        }
+    };
+    updateTime();
 
     source.onended = () => {
         const index = activeSources.indexOf(source);
         if (index > -1) {
             activeSources.splice(index, 1);
         }
-        if (activeSources.length === 0) stopSoundbar();
+        currentSoundSource = null;
+        currentSoundId = null;
+        currentTimeElement.textContent = '0:00';
     };
 }
 
@@ -367,9 +398,25 @@ function stopAllSounds() {
         }
     });
     activeSources.length = 0; // Clear the array
+    currentSoundSource = null;
+    currentSoundId = null;
     stopSoundbar();
     console.log("Attempted to stop all active sounds.");
 }
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+// Add restart functionality
+const restartButton = document.getElementById('restart-button');
+restartButton.addEventListener('click', () => {
+    if (currentSoundId) {
+        playSound(currentSoundId); // Restart the current sound
+    }
+});
 
 // --- UI and Interaction Functions ---
 const buttonsArea = document.getElementById('buttons-area');
