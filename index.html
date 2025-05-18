@@ -25,15 +25,11 @@
                 <input type="text" id="search-input" placeholder="Enter sound name...">
             </div>
 
+            <div class="control-group">
+                <button id="manage-categories-btn">Edit Categories</button>
+            </div>
+
             <div class="control-group" id="sort-filter-area">
-                <div>
-                    <label for="sort-by">Sort By:</label>
-                    <select id="sort-by">
-                        <option value="default">Default (Added Order)</option>
-                        <option value="alphabetical-asc">Alphabetical (A-Z)</option>
-                        <option value="alphabetical-desc">Alphabetical (Z-A)</option>
-                    </select>
-                </div>
                 <div>
                     <label for="filter-category">Filter By:</label>
                     <select id="filter-category">
@@ -62,7 +58,7 @@
     <!-- The Modal -->
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" data-modal-id="editModal">&times;</span>
             <h2>Edit Sound Button</h2>
 
             <div class="modal-grid">
@@ -76,19 +72,11 @@
                 <input type="color" id="editTextColor" name="editTextColor">
 
                 <label for="editCategory">Category:</label>
-                <select id="editCategory" name="editCategory">
-                    <option value="General">General</option>
-                    <option value="Trumpism">Trumpism</option>
-                    <option value="Money">Money</option>
-                    <option value="Music & Themes">Music & Themes</option>
-                    <option value="Bodily Functions">Bodily Functions</option>
-                    <option value="Sound Effects">Sound Effects</option>
-                    <option value="Gaming">Gaming</option>
-                    <option value="Crowd & Reactions">Crowd & Reactions</option>
-                    <option value="Adult">Adult</option>
-                    <option value="Controversial">Controversial</option>
-                    <option value="User Added">User Added</option>
-                </select>
+                <input list="categoryDatalist" id="editCategory" name="editCategory" placeholder="Type or select category">
+                <datalist id="categoryDatalist">
+                    {/* Options will be populated by JavaScript */}
+                    {/* Example: <option value="General"></option> */}
+                </datalist>
             </div>
 
             <button id="saveButton">Save</button>
@@ -96,5 +84,37 @@
     </div>
 
     <script src="script.js"></script>
+
+    <!-- Manage Categories Modal -->
+    <div id="manageCategoriesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal-id="manageCategoriesModal">&times;</span>
+            <h2>Manage Categories</h2>
+
+            <div class="modal-section">
+                <h3>Add New Category</h3>
+                <div class="control-group">
+                    <label for="newCategoryName">Category Name:</label>
+                    <input type="text" id="newCategoryName" placeholder="Enter new category name">
+                    <button id="addCategoryBtn">Add Category</button>
+                </div>
+                <p id="add-category-feedback" class="feedback-message" aria-live="polite"></p>
+            </div>
+
+            <div class="modal-section">
+                <h3>Existing Categories</h3>
+                <ul id="existingCategoriesList">
+                    {/* JavaScript will populate this list. Example item structure:
+                    <li>
+                        <span class="category-name-display">Category Name</span>
+                        <input type="text" class="category-name-edit" value="Category Name" style="display:none;">
+                        <button class="edit-cat-btn">Edit</button> <button class="save-cat-btn" style="display:none;">Save</button> <button class="cancel-cat-btn" style="display:none;">Cancel</button> <button class="delete-cat-btn">Delete</button>
+                    </li>
+                    */}
+                </ul>
+                <p id="manage-categories-feedback" class="feedback-message" aria-live="polite"></p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
