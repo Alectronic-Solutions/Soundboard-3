@@ -355,6 +355,17 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Your Fired Trump', path: 'sounds/Your Fired Trump.ogg', category: 'Trumpism' },
         { name: 'Your Rights Are My Responsibilities', path: 'sounds/Your Rights Are My Responsibilities.ogg', category: 'General' },
         { name: "You're a Millionaire", path: "sounds/You're a Millionaire.ogg", category: 'Money' },
+        { name: 'Countdown', path: 'sounds/Countdown.ogg', category: 'Sound Effects' },
+        { name: 'Why in the fuck would I do that', path: 'sounds/Why in the fuck would I do that.ogg', category: 'General' },
+        { name: 'Yeah this is gonna help with that bitch', path: 'sounds/Yeah this is gonna help with that bitch.ogg', category: 'General' },
+        { name: 'You Have Smoked Yourself Retarded', path: 'sounds/You Have Smoked Yourself Retarded.ogg', category: 'General' },
+        { name: 'Does he look like a bitch', path: 'sounds/Does he look like a bitch.ogg', category: 'General' },
+        { name: 'Eat Shit Derek', path: 'sounds/Eat Shit Derek.ogg', category: 'General' },
+        { name: 'Im Kinda Retarded', path: 'sounds/Im Kinda Retarded.ogg', category: 'General' },
+        { name: 'Lot of perverts in here', path: 'sounds/Lot of perverts in here.ogg', category: 'General' },
+        { name: 'MotherFucker', path: 'sounds/MotherFucker.ogg', category: 'General' },
+        { name: 'Orgasm', path: 'sounds/Orgasm.ogg', category: 'Adult' },
+        { name: 'Oral Sex', path: 'sounds/Oral Sex.ogg', category: 'Adult' },
     ];
 
     // --- Category Group Order Logic ---
@@ -393,7 +404,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedSounds) {
             try {
                 sounds = JSON.parse(savedSounds);
+                // --- Ensure new sounds are present ---
+                const ensureSound = (name, path, category) => {
+                    if (!sounds.some(s => s.name === name && s.path === path)) {
+                        sounds.push({ name, path, category });
+                    }
+                };
+                ensureSound('Countdown', 'sounds/Countdown.ogg', 'Sound Effects');
+                ensureSound('Why in the fuck would I do that', 'sounds/Why in the fuck would I do that.ogg', 'General');
+                ensureSound('Yeah this is gonna help with that bitch', 'sounds/Yeah this is gonna help with that bitch.ogg', 'General');
+                ensureSound('You Have Smoked Yourself Retarded', 'sounds/You Have Smoked Yourself Retarded.ogg', 'General');
+                ensureSound('Does he look like a bitch', 'sounds/Does he look like a bitch.ogg', 'General');
+                ensureSound('Eat Shit Derek', 'sounds/Eat Shit Derek.ogg', 'General');
+                ensureSound('Im Kinda Retarded', 'sounds/Im Kinda Retarded.ogg', 'General');
+                ensureSound('Lot of perverts in here', 'sounds/Lot of perverts in here.ogg', 'General');
+                ensureSound('MotherFucker', 'sounds/MotherFucker.ogg', 'General');
+                ensureSound('Orgasm', 'sounds/Orgasm.ogg', 'Adult');
+                ensureSound('Oral Sex', 'sounds/Oral Sex.ogg', 'Adult');
             } catch {}
+        } else {
+            // --- Ensure new sounds are present on first load ---
+            const ensureSound = (name, path, category) => {
+                if (!sounds.some(s => s.name === name && s.path === path)) {
+                    sounds.push({ name, path, category });
+                }
+            };
+            ensureSound('Countdown', 'sounds/Countdown.ogg', 'Sound Effects');
+            ensureSound('Why in the fuck would I do that', 'sounds/Why in the fuck would I do that.ogg', 'General');
+            ensureSound('Yeah this is gonna help with that bitch', 'sounds/Yeah this is gonna help with that bitch.ogg', 'General');
+            ensureSound('You Have Smoked Yourself Retarded', 'sounds/You Have Smoked Yourself Retarded.ogg', 'General');
+            ensureSound('Does he look like a bitch', 'sounds/Does he look like a bitch.ogg', 'General');
+            ensureSound('Eat Shit Derek', 'sounds/Eat Shit Derek.ogg', 'General');
+            ensureSound('Im Kinda Retarded', 'sounds/Im Kinda Retarded.ogg', 'General');
+            ensureSound('Lot of perverts in here', 'sounds/Lot of perverts in here.ogg', 'General');
+            ensureSound('MotherFucker', 'sounds/MotherFucker.ogg', 'General');
+            ensureSound('Orgasm', 'sounds/Orgasm.ogg', 'Adult');
+            ensureSound('Oral Sex', 'sounds/Oral Sex.ogg', 'Adult');
         }
         if (savedOrder) {
             try {
@@ -818,6 +864,65 @@ document.addEventListener('DOMContentLoaded', () => {
         saveState();
     };
 
+    // --- Preload all sounds ---
+    // We'll keep a map of Audio objects for instant playback
+    const preloadedAudio = new Map();
+
+    function preloadAllSounds() {
+        preloadedAudio.clear();
+        sounds.forEach(sound => {
+            // Only preload if not already in map and path is not a blob (uploaded files)
+            if (!preloadedAudio.has(sound.path) && sound.path && !sound.path.startsWith('blob:')) {
+                const audio = new Audio();
+                audio.preload = 'auto';
+                // Set src and check if browser can play it
+                audio.src = sound.path;
+                // Only add if browser can play the file type
+                const ext = sound.path.split('.').pop().toLowerCase();
+                let mime = '';
+                if (ext === 'ogg') mime = 'audio/ogg';
+                else if (ext === 'mp3') mime = 'audio/mpeg';
+                else if (ext === 'wav') mime = 'audio/wav';
+                else if (ext === 'm4a') mime = 'audio/mp4';
+                if (audio.canPlayType(mime)) {
+                    audio.load();
+                    preloadedAudio.set(sound.path, audio);
+                }
+            }
+        });
+    }
+
+    function playSound(soundPath, button) {
+        if (editMode) return; // Don't play in edit mode
+
+        // Use preloaded audio if available, otherwise create new
+        let audio;
+        if (preloadedAudio.has(soundPath)) {
+            const orig = preloadedAudio.get(soundPath);
+            audio = orig.cloneNode(true);
+        } else {
+            audio = new Audio(soundPath);
+            // Check if browser can play this type before playing
+            const ext = soundPath.split('.').pop().toLowerCase();
+            let mime = '';
+            if (ext === 'ogg') mime = 'audio/ogg';
+            else if (ext === 'mp3') mime = 'audio/mpeg';
+            else if (ext === 'wav') mime = 'audio/wav';
+            else if (ext === 'm4a') mime = 'audio/mp4';
+            if (!audio.canPlayType(mime)) {
+                alert('Your browser cannot play this audio type: ' + ext);
+                return;
+            }
+        }
+        audio.play().catch(err => {
+            alert('Failed to play sound. File may be missing or unsupported.');
+        });
+        currentlyPlayingAudio.push(audio);
+        audio.addEventListener('ended', () => {
+            currentlyPlayingAudio = currentlyPlayingAudio.filter(a => a !== audio);
+        });
+    }
+
     // --- Main render logic ---
     function renderSoundButtons() {
         updateCategoryOrderFromSounds();
@@ -934,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         populateCategoryFilter();
         saveState();
+        preloadAllSounds(); // Preload after rendering in case sounds changed
     }
 
     // --- File upload functionality ---
@@ -958,6 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSoundButtons();
         saveState();
         fileUploadInput.value = '';
+        preloadAllSounds(); // Preload new uploaded sounds if needed
     });
 
     // --- Stop All functionality ---
@@ -983,21 +1090,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSoundButtons();
     });
 
-    // --- Play sound ---
-    function playSound(soundPath, button) {
-        if (editMode) return; // Don't play in edit mode
-        const audio = new Audio(soundPath);
-        audio.play();
-        currentlyPlayingAudio.push(audio);
-        audio.addEventListener('ended', () => {
-            currentlyPlayingAudio = currentlyPlayingAudio.filter(a => a !== audio);
-        });
-    }
-
     // --- Category order modal, persistence, etc. ---
-    // ...existing code...
-
     // On load, restore state
     loadState();
     renderSoundButtons();
+    preloadAllSounds();
 });
