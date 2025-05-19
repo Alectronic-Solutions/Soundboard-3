@@ -3,118 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Best Soundboard Ever</title>
+    <title>Minimalistic Soundboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="dark-theme">
-    <header>
-    </header>
-
-    <main id="soundboard-container">
-        <section id="controls-area" aria-labelledby="controls-heading">
-            <h2 id="controls-heading" class="sr-only">Soundboard Controls</h2>
-
+<body>
+    <div class="container">
+        <header class="controls">
             <div class="control-group">
-                <label for="add-sound-input">Add .ogg Sound:</label>
-                <input type="file" id="add-sound-input" accept=".ogg,audio/ogg" aria-describedby="file-input-help">
-                <p id="file-input-help" class="sr-only">Select an OGG audio file from your device to add it to the soundboard.</p>
+                <label for="file-upload" class="custom-file-upload button">Upload Sounds</label>
+                <input id="file-upload" type="file" multiple accept="audio/*">
+                <button id="edit-button">Edit</button>
+                <select id="category-select">
+                    <option value="all">All Categories</option>
+                </select>
+                <select id="sort-select">
+                    <option value="name">Sort by Name</option>
+                    <option value="category">Sort by Category</option>
+                </select>
             </div>
-
-            <div class="control-group">
-                <label for="search-input">Search Sounds:</label>
-                <input type="text" id="search-input" placeholder="Enter sound name...">
+            <div class="control-group search-stop">
+                <input type="search" id="search-input" placeholder="Search Sounds...">
+                <button id="stop-all-button">Stop All</button>
             </div>
+        </header>
 
-            <div class="control-group">
-                <button id="manage-categories-btn">Edit Categories</button>
+        <main id="soundboard-grid" class="soundboard-grid">
+            </main>
+        <!-- Edit Modal -->
+        <div id="edit-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" id="edit-modal-close">&times;</span>
+                <h2>Edit Sound Button</h2>
+                <form id="edit-sound-form">
+                    <label>
+                        Name:
+                        <input type="text" id="edit-sound-name" required>
+                    </label>
+                    <label style="display:flex;gap:12px;align-items:center;">
+                        Color:
+                        <input type="color" id="edit-sound-color">
+                        <input type="text" id="edit-sound-color-text" placeholder="Or enter CSS color">
+                        <span style="margin-left:10px;">Text Color:</span>
+                        <input type="color" id="edit-sound-textcolor">
+                        <input type="text" id="edit-sound-textcolor-text" placeholder="Or enter text color">
+                    </label>
+                    <label>
+                        Category:
+                        <select id="edit-sound-category"></select>
+                        <input type="text" id="edit-sound-category-custom" placeholder="Or enter new category">
+                    </label>
+                    <div style="margin-top:16px; display:flex; gap:8px;">
+                        <button type="button" id="move-up-btn">&#8593; Up</button>
+                        <button type="button" id="move-down-btn">&#8595; Down</button>
+                        <span style="flex:1"></span>
+                        <button type="submit" id="edit-sound-save">Save</button>
+                        <button type="button" id="edit-sound-cancel">Cancel</button>
+                    </div>
+                </form>
             </div>
-
-            <div class="control-group" id="sort-filter-area">
-                <div>
-                    <label for="filter-category">Filter By:</label>
-                    <select id="filter-category">
-                        <option value="all">All Categories</option>
-                        {/* Categories will be populated by JavaScript */}
-                    </select>
-                </div>
-            </div>
-
-            <div class="control-group control-group-right">
-                <button id="stop-all-btn" aria-label="Stop all currently playing sounds">Stop All Sounds</button>
-                <button id="edit-mode-btn">Edit Mode: Off</button>
-            </div>
-        </section>
-
-        <section id="buttons-area" aria-label="Soundboard buttons">
-            {/* Sound buttons will be dynamically inserted here by JavaScript */}
-            <p id="loading-message">Loading sounds...</p>
-        </section>
-    </main>
-
-    <footer>
-        <p>Built with the Web Audio API. Double-click a button to edit its text and color.</p>
-    </footer>
-
-    <!-- The Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal-id="editModal">&times;</span>
-            <h2>Edit Sound Button</h2>
-
-            <div class="modal-grid">
-                <label for="editText">Text:</label>
-                <input type="text" id="editText" name="editText">
-
-                <label for="editColor">Background Color:</label>
-                <input type="color" id="editColor" name="editColor">
-
-                <label for="editTextColor">Text Color:</label>
-                <input type="color" id="editTextColor" name="editTextColor">
-
-                <label for="editCategory">Category:</label>
-                <input list="categoryDatalist" id="editCategory" name="editCategory" placeholder="Type or select category">
-                <datalist id="categoryDatalist">
-                    {/* Options will be populated by JavaScript */}
-                    {/* Example: <option value="General"></option> */}
-                </datalist>
-            </div>
-
-            <button id="saveButton">Save</button>
         </div>
     </div>
 
     <script src="script.js"></script>
-
-    <!-- Manage Categories Modal -->
-    <div id="manageCategoriesModal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal-id="manageCategoriesModal">&times;</span>
-            <h2>Manage Categories</h2>
-
-            <div class="modal-section">
-                <h3>Add New Category</h3>
-                <div class="control-group">
-                    <label for="newCategoryName">Category Name:</label>
-                    <input type="text" id="newCategoryName" placeholder="Enter new category name">
-                    <button id="addCategoryBtn">Add Category</button>
-                </div>
-                <p id="add-category-feedback" class="feedback-message" aria-live="polite"></p>
-            </div>
-
-            <div class="modal-section">
-                <h3>Existing Categories</h3>
-                <ul id="existingCategoriesList">
-                    {/* JavaScript will populate this list. Example item structure:
-                    <li>
-                        <span class="category-name-display">Category Name</span>
-                        <input type="text" class="category-name-edit" value="Category Name" style="display:none;">
-                        <button class="edit-cat-btn">Edit</button> <button class="save-cat-btn" style="display:none;">Save</button> <button class="cancel-cat-btn" style="display:none;">Cancel</button> <button class="delete-cat-btn">Delete</button>
-                    </li>
-                    */}
-                </ul>
-                <p id="manage-categories-feedback" class="feedback-message" aria-live="polite"></p>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
