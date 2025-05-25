@@ -543,16 +543,24 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // --- Sorting logic ---
-    let currentSort = 'name';
-    let currentCategory = 'all';
-    let currentSearch = '';
+    // --- Fast lookup for sounds by name/path ---
+    let soundMap = new Map();
+    function updateSoundMap() {
+        soundMap.clear();
+        sounds.forEach(s => soundMap.set(s.path, s));
+    }
 
+    // --- Fast sort cache ---
+    let lastSortKey = '';
+    let lastSortList = [];
     function sortSounds(soundsArr) {
+        const sortKey = currentSort + '|' + categoryOrder.join(',') + '|' + soundsArr.length;
+        if (sortKey === lastSortKey) return lastSortList;
+        let sorted;
         if (currentSort === 'name') {
-            return [...soundsArr].sort((a, b) => a.name.localeCompare(b.name));
+            sorted = [...soundsArr].sort((a, b) => a.name.localeCompare(b.name));
         } else if (currentSort === 'category') {
-            return [...soundsArr].sort((a, b) => {
+            sorted = [...soundsArr].sort((a, b) => {
                 const idxA = a.category ? categoryOrder.indexOf(a.category) : -1;
                 const idxB = b.category ? categoryOrder.indexOf(b.category) : -1;
                 if (idxA === idxB) {
@@ -560,8 +568,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return idxA - idxB;
             });
+        } else {
+            sorted = soundsArr;
         }
-        return soundsArr;
+        lastSortKey = sortKey;
+        lastSortList = sorted;
+        return sorted;
     }
 
     function getFilteredSounds() {
@@ -576,11 +588,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return sortSounds(list);
     }
 
+    // --- Preload all sounds in parallel, only once per path ---
+    const preloadedAudio = new Map();
+    function preloadAllSounds() {
+        preloadedAudio.clear();
+        const uniquePaths = new Set(sounds.map(s => s.path));
+        uniquePaths.forEach(path => {
+            if (!path || path.startsWith('blob:')) return;
+            const audio = new Audio();
+            audio.preload = 'auto';
+            audio.src = path;
+            const ext = path.split('.').pop().toLowerCase();
+            let mime = '';
+            if (ext === 'ogg') mime = 'audio/ogg';
+            else if (ext === 'mp3') mime = 'audio/mpeg';
+            else if (ext === 'wav') mime = 'audio/wav';
+            else if (ext === 'm4a') mime = 'audio/mp4';
+            if (audio.canPlayType(mime)) {
+                audio.load();
+                preloadedAudio.set(path, audio);
+            }
+        });
+    }
+
+    // --- Main render logic ---
     function renderSoundButtons() {
-        updateCategoryOrderFromSounds(); // Always sync order with sounds, but don't reorder
+        updateCategoryOrderFromSounds();
+        updateSoundMap();
         const list = getFilteredSounds();
         soundboardGrid.innerHTML = '';
-        const uniqueCategories = new Set(['all']);
         if (currentSort === 'category' && currentCategory === 'all' && !currentSearch) {
             categoryOrder.forEach(cat => {
                 const group = list.filter(sound => sound.category === cat);
@@ -663,7 +699,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             list.forEach((sound, idx) => {
-                if (sound.category) uniqueCategories.add(sound.category);
                 const button = document.createElement('button');
                 button.classList.add('sound-button');
                 button.textContent = sound.name;
@@ -693,41 +728,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         populateCategoryFilter();
         saveState();
+        preloadAllSounds();
     }
 
-    // --- Category Filter Dropdown ---
-    function populateCategoryFilter() {
-        // Always use up-to-date categories
-        categorySelect.innerHTML = '';
-        const allOption = document.createElement('option');
-        allOption.value = 'all';
-        allOption.textContent = 'All Categories';
-        categorySelect.appendChild(allOption);
-
-        // Only unique, non-empty categories
-        categoryOrder.forEach(cat => {
-            if (cat && cat.trim()) {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
-                categorySelect.appendChild(option);
-            }
-        });
-
-        // Restore previous selection if possible, else default to 'all'
-        if ([...categorySelect.options].some(opt => opt.value === currentCategory)) {
-            categorySelect.value = currentCategory;
-        } else {
-            categorySelect.value = 'all';
-            currentCategory = 'all';
-        }
-    }
-
-    // --- Edit Mode Toggle ---
-    editButton.addEventListener('click', () => {
-        editMode = !editMode;
-        editButton.classList.toggle('active', editMode);
-        editButton.textContent = editMode ? 'Done Editing' : 'Edit';
+    // --- Only update and re-render when state changes ---
+    searchInput.addEventListener('input', () => {
+        currentSearch = searchInput.value;
+        renderSoundButtons();
+    });
+    categorySelect.addEventListener('change', () => {
+        currentCategory = categorySelect.value;
+        renderSoundButtons();
+    });
+    document.getElementById('sort-select').addEventListener('change', function () {
+        currentSort = this.value;
         renderSoundButtons();
     });
 
@@ -926,6 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Main render logic ---
     function renderSoundButtons() {
         updateCategoryOrderFromSounds();
+        updateSoundMap();
         const list = getFilteredSounds();
         soundboardGrid.innerHTML = '';
         if (currentSort === 'category' && currentCategory === 'all' && !currentSearch) {
@@ -1039,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         populateCategoryFilter();
         saveState();
-        preloadAllSounds(); // Preload after rendering in case sounds changed
+        preloadAllSounds();
     }
 
     // --- File upload functionality ---
@@ -1093,6 +1108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Category order modal, persistence, etc. ---
     // On load, restore state
     loadState();
+    updateSoundMap();
     renderSoundButtons();
     preloadAllSounds();
 });
