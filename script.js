@@ -6,9 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const categorySelect = document.getElementById('category-select');
     const editButton = document.getElementById('edit-button');
 
-    let currentlyPlayingAudio = []; // To keep track of active audio elements
+    // --- GLOBAL STATE ---
+    let currentlyPlayingAudio = [];
     let editMode = false;
     let editIdx = null;
+    let currentSort = 'name';
+    let currentCategory = 'all';
+    let currentSearch = '';
 
     // --- DEFINE YOUR SOUNDS HERE ---
     // You need to create a 'sounds' folder in the same directory as your HTML file
@@ -550,46 +554,10 @@ document.addEventListener('DOMContentLoaded', () => {
         sounds.forEach(s => soundMap.set(s.path, s));
     }
 
-    // --- Fast sort cache ---
-    let lastSortKey = '';
-    let lastSortList = [];
-    function sortSounds(soundsArr) {
-        const sortKey = currentSort + '|' + categoryOrder.join(',') + '|' + soundsArr.length;
-        if (sortKey === lastSortKey) return lastSortList;
-        let sorted;
-        if (currentSort === 'name') {
-            sorted = [...soundsArr].sort((a, b) => a.name.localeCompare(b.name));
-        } else if (currentSort === 'category') {
-            sorted = [...soundsArr].sort((a, b) => {
-                const idxA = a.category ? categoryOrder.indexOf(a.category) : -1;
-                const idxB = b.category ? categoryOrder.indexOf(b.category) : -1;
-                if (idxA === idxB) {
-                    return a.name.localeCompare(b.name);
-                }
-                return idxA - idxB;
-            });
-        } else {
-            sorted = soundsArr;
-        }
-        lastSortKey = sortKey;
-        lastSortList = sorted;
-        return sorted;
-    }
-
-    function getFilteredSounds() {
-        let list = sounds;
-        if (currentSearch && currentSearch.trim() !== '') {
-            const searchTerm = currentSearch.toLowerCase();
-            list = list.filter(sound => sound.name.toLowerCase().includes(searchTerm));
-        }
-        if (currentCategory !== 'all') {
-            list = list.filter(sound => sound.category === currentCategory);
-        }
-        return sortSounds(list);
-    }
-
     // --- Preload all sounds in parallel, only once per path ---
+    // Only declare preloadedAudio ONCE, here:
     const preloadedAudio = new Map();
+
     function preloadAllSounds() {
         preloadedAudio.clear();
         const uniquePaths = new Set(sounds.map(s => s.path));
@@ -611,127 +579,283 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Category filter population ---
+    function populateCategoryFilter() {
+        const prev = categorySelect.value;
+        // Get all categories from current sounds
+        const categories = Array.from(new Set(sounds.map(s => s.category).filter(Boolean)));
+        categorySelect.innerHTML = '<option value="all">All Categories</option>';
+        categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            categorySelect.appendChild(opt);
+        });
+        // Restore previous selection if possible
+        if (categories.includes(prev)) {
+            categorySelect.value = prev;
+        } else {
+            categorySelect.value = 'all';
+            currentCategory = 'all';
+        }
+    }
+
+    // --- Category icon mapping ---
+    const categoryIcons = {
+        "General": "🔊",
+        "Sound Effects": "✨",
+        "Music": "🎵",
+        "Crowd & Reactions": "👏",
+        "Gaming": "🎮",
+        "Trumpism": "🇺🇸",
+        "Money": "💰",
+        "Adult": "🔞",
+        "Bodily Functions": "💨",
+        "Uncategorized": "❓"
+    };
+
     // --- Main render logic ---
     function renderSoundButtons() {
         updateCategoryOrderFromSounds();
         updateSoundMap();
         const list = getFilteredSounds();
         soundboardGrid.innerHTML = '';
+
+        if (!currentSort) currentSort = 'name';
+        if (!currentCategory) currentCategory = 'all';
+        if (typeof currentSearch === 'undefined') currentSearch = '';
+
+        // Grouped by category block
         if (currentSort === 'category' && currentCategory === 'all' && !currentSearch) {
             categoryOrder.forEach(cat => {
                 const group = list.filter(sound => sound.category === cat);
                 if (group.length > 0) {
+                    const block = document.createElement('section');
+                    block.className = 'category-block';
+
+                    // Header
                     const header = document.createElement('div');
-                    header.textContent = cat;
                     header.className = 'category-header';
-                    header.style.gridColumn = '1/-1';
-                    header.style.fontWeight = 'bold';
-                    header.style.margin = '10px 0 0 0';
-                    header.style.fontSize = '1.1em';
-                    soundboardGrid.appendChild(header);
+                    header.setAttribute('data-category', cat);
+                    const icon = document.createElement('span');
+                    icon.className = 'cat-icon';
+                    icon.textContent = categoryIcons[cat] || "🔊";
+                    header.appendChild(icon);
+                    header.appendChild(document.createTextNode(cat + " "));
+                    const count = document.createElement('span');
+                    count.style.fontWeight = "400";
+                    count.style.fontSize = "0.95em";
+                    count.style.opacity = "0.7";
+                    count.textContent = `(${group.length})`;
+                    header.appendChild(count);
+                    block.appendChild(header);
+
+                    // Sound grid
+                    const grid = document.createElement('div');
+                    grid.className = 'category-sound-grid';
                     group.forEach(sound => {
                         const idx = sounds.indexOf(sound);
-                        const button = document.createElement('button');
-                        button.classList.add('sound-button');
-                        button.textContent = sound.name;
-                        button.dataset.soundPath = sound.path;
-                        button.dataset.soundName = sound.name;
-                        if (sound.color) button.style.backgroundColor = sound.color;
-                        button.style.color = sound.textColor || "#fff";
-                        button.style.textShadow = "1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff";
-                        if (editMode) {
-                            button.style.outline = '2px dashed #007bff';
-                            button.title = 'Click to edit';
-                            button.onclick = (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                openEditModal(sound, idx);
-                            };
-                        } else {
-                            button.style.outline = '';
-                            button.title = '';
-                            button.onclick = () => {
-                                playSound(sound.path, button);
-                            };
+                        const button = createSoundButton(sound, idx);
+                        button.setAttribute('data-category', cat);
+                        // --- Fix: Always attach a click handler to play the sound ---
+                        if (!editMode) {
+                            button.onclick = () => playSound(sound.path, button);
                         }
-                        soundboardGrid.appendChild(button);
+                        grid.appendChild(button);
                     });
+                    block.appendChild(grid);
+                    soundboardGrid.appendChild(block);
                 }
             });
             // Show uncategorized at the end
             const uncategorized = list.filter(sound => !sound.category);
             if (uncategorized.length > 0) {
+                const block = document.createElement('section');
+                block.className = 'category-block';
                 const header = document.createElement('div');
-                header.textContent = 'Uncategorized';
                 header.className = 'category-header';
-                header.style.gridColumn = '1/-1';
-                header.style.fontWeight = 'bold';
-                header.style.margin = '10px 0 0 0';
-                header.style.fontSize = '1.1em';
-                soundboardGrid.appendChild(header);
+                header.setAttribute('data-category', 'Uncategorized');
+                const icon = document.createElement('span');
+                icon.className = 'cat-icon';
+                icon.textContent = categoryIcons["Uncategorized"];
+                header.appendChild(icon);
+                header.appendChild(document.createTextNode("Uncategorized "));
+                const count = document.createElement('span');
+                count.style.fontWeight = "400";
+                count.style.fontSize = "0.95em";
+                count.style.opacity = "0.7";
+                count.textContent = `(${uncategorized.length})`;
+                header.appendChild(count);
+                block.appendChild(header);
+
+                const grid = document.createElement('div');
+                grid.className = 'category-sound-grid';
                 uncategorized.forEach(sound => {
                     const idx = sounds.indexOf(sound);
-                    const button = document.createElement('button');
-                    button.classList.add('sound-button');
-                    button.textContent = sound.name;
-                    button.dataset.soundPath = sound.path;
-                    button.dataset.soundName = sound.name;
-                    if (sound.color) button.style.backgroundColor = sound.color;
-                    button.style.color = sound.textColor || "#fff";
-                    button.style.textShadow = "1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff";
-                    if (editMode) {
-                        button.style.outline = '2px dashed #007bff';
-                        button.title = 'Click to edit';
-                        button.onclick = (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openEditModal(sound, idx);
-                        };
-                    } else {
-                        button.style.outline = '';
-                        button.title = '';
-                        button.onclick = () => {
-                            playSound(sound.path, button);
-                        };
+                    const button = createSoundButton(sound, idx);
+                    button.setAttribute('data-category', 'Uncategorized');
+                    // --- Fix: Always attach a click handler to play the sound ---
+                    if (!editMode) {
+                        button.onclick = () => playSound(sound.path, button);
                     }
-                    soundboardGrid.appendChild(button);
+                    grid.appendChild(button);
                 });
+                block.appendChild(grid);
+                soundboardGrid.appendChild(block);
             }
         } else {
+            // Flat grid for search/filter
+            const block = document.createElement('section');
+            block.className = 'category-block';
+            const grid = document.createElement('div');
+            grid.className = 'category-sound-grid';
             list.forEach((sound, idx) => {
-                const button = document.createElement('button');
-                button.classList.add('sound-button');
-                button.textContent = sound.name;
-                button.dataset.soundPath = sound.path;
-                button.dataset.soundName = sound.name;
-                if (sound.color) button.style.backgroundColor = sound.color;
-                button.style.color = sound.textColor || "#fff";
-                button.style.textShadow = "1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff";
-                if (editMode) {
-                    button.style.outline = '2px dashed #007bff';
-                    button.title = 'Click to edit';
-                    button.onclick = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const origIdx = sounds.indexOf(sound);
-                        openEditModal(sound, origIdx);
-                    };
-                } else {
-                    button.style.outline = '';
-                    button.title = '';
-                    button.onclick = () => {
-                        playSound(sound.path, button);
-                    };
+                const button = createSoundButton(sound, sounds.indexOf(sound));
+                button.setAttribute('data-category', sound.category || 'Uncategorized');
+                // --- Fix: Always attach a click handler to play the sound ---
+                if (!editMode) {
+                    button.onclick = () => playSound(sound.path, button);
                 }
-                soundboardGrid.appendChild(button);
+                grid.appendChild(button);
             });
+            block.appendChild(grid);
+            soundboardGrid.appendChild(block);
         }
         populateCategoryFilter();
         saveState();
         preloadAllSounds();
     }
 
-    // --- Only update and re-render when state changes ---
+    // --- Helper: getFilteredSounds ---
+    function getFilteredSounds() {
+        let list = sounds;
+        if (currentSearch && currentSearch.trim() !== '') {
+            const searchTerm = currentSearch.toLowerCase();
+            list = list.filter(sound => sound.name.toLowerCase().includes(searchTerm));
+        }
+        if (currentCategory !== 'all') {
+            list = list.filter(sound => sound.category === currentCategory);
+        }
+        // Sort
+        if (currentSort === 'name') {
+            list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+        } else if (currentSort === 'category') {
+            list = [...list].sort((a, b) => {
+                const idxA = a.category ? categoryOrder.indexOf(a.category) : -1;
+                const idxB = b.category ? categoryOrder.indexOf(b.category) : -1;
+                if (idxA === idxB) {
+                    return a.name.localeCompare(b.name);
+                }
+                return idxA - idxB;
+            });
+        }
+        return list;
+    }
+
+    function createSoundButton(sound, idx) {
+        const button = document.createElement('button');
+        button.classList.add('sound-button');
+        button.textContent = sound.name;
+        button.dataset.soundPath = sound.path;
+        button.dataset.soundName = sound.name;
+        if (sound.color) button.style.backgroundColor = sound.color;
+        button.style.color = sound.textColor || "#fff";
+        button.style.textShadow = "1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff";
+        if (editMode) {
+            button.style.outline = '2px dashed #007bff';
+            button.title = 'Click to edit';
+            button.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openEditModal(sound, idx);
+            };
+        } else {
+            button.style.outline = '';
+            button.title = '';
+            // --- Remove onclick here, always set in renderSoundButtons ---
+        }
+        return button;
+    }
+
+    function playSound(soundPath, button) {
+        if (editMode) return; // Don't play in edit mode
+
+        let audio;
+        if (preloadedAudio.has(soundPath)) {
+            const orig = preloadedAudio.get(soundPath);
+            audio = orig.cloneNode(true);
+        } else {
+            audio = new Audio(soundPath);
+            const ext = soundPath.split('.').pop().toLowerCase();
+            let mime = '';
+            if (ext === 'ogg') mime = 'audio/ogg';
+            else if (ext === 'mp3') mime = 'audio/mpeg';
+            else if (ext === 'wav') mime = 'audio/wav';
+            else if (ext === 'm4a') mime = 'audio/mp4';
+            if (!audio.canPlayType(mime)) {
+                alert('Your browser cannot play this audio type: ' + ext);
+                return;
+            }
+        }
+        // Visual feedback for playing
+        button.classList.add('playing');
+        audio.play().catch(() => {
+            alert('Failed to play sound. File may be missing or unsupported.');
+        });
+        currentlyPlayingAudio.push(audio);
+        audio.addEventListener('ended', () => {
+            currentlyPlayingAudio = currentlyPlayingAudio.filter(a => a !== audio);
+            button.classList.remove('playing');
+        });
+        audio.addEventListener('pause', () => {
+            button.classList.remove('playing');
+        });
+    }
+
+    // --- Edit mode toggle ---
+    editButton.addEventListener('click', () => {
+        editMode = !editMode;
+        editButton.classList.toggle('active', editMode);
+        renderSoundButtons();
+    });
+
+    // --- File upload functionality ---
+    fileUploadInput.addEventListener('change', (event) => {
+        const files = Array.from(event.target.files);
+        files.forEach(file => {
+            if (!file.type.startsWith('audio/')) return;
+            const url = URL.createObjectURL(file);
+            let baseName = file.name.replace(/\.[^/.]+$/, "");
+            let name = baseName;
+            let counter = 1;
+            while (sounds.some(s => s.name === name)) {
+                name = `${baseName} (${counter++})`;
+            }
+            sounds.push({
+                name,
+                path: url,
+                category: undefined
+            });
+            updateCategoryOrderFromSounds();
+        });
+        renderSoundButtons();
+        saveState();
+        fileUploadInput.value = '';
+        preloadAllSounds();
+    });
+
+    // --- Stop All functionality ---
+    stopAllButton.addEventListener('click', () => {
+        currentlyPlayingAudio.forEach(audio => {
+            audio.pause();
+            audio.currentTime = 0;
+        });
+        currentlyPlayingAudio = [];
+        // Remove playing class from all buttons
+        document.querySelectorAll('.sound-button.playing').forEach(btn => btn.classList.remove('playing'));
+    });
+
+    // --- Controls event listeners ---
     searchInput.addEventListener('input', () => {
         currentSearch = searchInput.value;
         renderSoundButtons();
@@ -841,7 +965,8 @@ document.addEventListener('DOMContentLoaded', () => {
             editIdx = editIdx - 1;
             saveState();
             renderSoundButtons();
-            openEditModal(sounds[editIdx], editIdx);
+            // Reopen modal for the new index after DOM update
+            setTimeout(() => openEditModal(sounds[editIdx], editIdx), 0);
         }
     };
     document.getElementById('move-down-btn').onclick = function() {
@@ -851,7 +976,8 @@ document.addEventListener('DOMContentLoaded', () => {
             editIdx = editIdx + 1;
             saveState();
             renderSoundButtons();
-            openEditModal(sounds[editIdx], editIdx);
+            // Reopen modal for the new index after DOM update
+            setTimeout(() => openEditModal(sounds[editIdx], editIdx), 0);
         }
     };
 
@@ -877,185 +1003,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSoundButtons();
         saveState();
     };
-
-    // --- Preload all sounds ---
-    // We'll keep a map of Audio objects for instant playback
-    const preloadedAudio = new Map();
-
-    function preloadAllSounds() {
-        preloadedAudio.clear();
-        sounds.forEach(sound => {
-            // Only preload if not already in map and path is not a blob (uploaded files)
-            if (!preloadedAudio.has(sound.path) && sound.path && !sound.path.startsWith('blob:')) {
-                const audio = new Audio();
-                audio.preload = 'auto';
-                // Set src and check if browser can play it
-                audio.src = sound.path;
-                // Only add if browser can play the file type
-                const ext = sound.path.split('.').pop().toLowerCase();
-                let mime = '';
-                if (ext === 'ogg') mime = 'audio/ogg';
-                else if (ext === 'mp3') mime = 'audio/mpeg';
-                else if (ext === 'wav') mime = 'audio/wav';
-                else if (ext === 'm4a') mime = 'audio/mp4';
-                if (audio.canPlayType(mime)) {
-                    audio.load();
-                    preloadedAudio.set(sound.path, audio);
-                }
-            }
-        });
-    }
-
-    function playSound(soundPath, button) {
-        if (editMode) return; // Don't play in edit mode
-
-        // Use preloaded audio if available, otherwise create new
-        let audio;
-        if (preloadedAudio.has(soundPath)) {
-            const orig = preloadedAudio.get(soundPath);
-            audio = orig.cloneNode(true);
-        } else {
-            audio = new Audio(soundPath);
-            // Check if browser can play this type before playing
-            const ext = soundPath.split('.').pop().toLowerCase();
-            let mime = '';
-            if (ext === 'ogg') mime = 'audio/ogg';
-            else if (ext === 'mp3') mime = 'audio/mpeg';
-            else if (ext === 'wav') mime = 'audio/wav';
-            else if (ext === 'm4a') mime = 'audio/mp4';
-            if (!audio.canPlayType(mime)) {
-                alert('Your browser cannot play this audio type: ' + ext);
-                return;
-            }
-        }
-        audio.play().catch(err => {
-            alert('Failed to play sound. File may be missing or unsupported.');
-        });
-        currentlyPlayingAudio.push(audio);
-        audio.addEventListener('ended', () => {
-            currentlyPlayingAudio = currentlyPlayingAudio.filter(a => a !== audio);
-        });
-    }
-
-    // --- Main render logic ---
-    function renderSoundButtons() {
-        updateCategoryOrderFromSounds();
-        updateSoundMap();
-        const list = getFilteredSounds();
-        soundboardGrid.innerHTML = '';
-        if (currentSort === 'category' && currentCategory === 'all' && !currentSearch) {
-            categoryOrder.forEach(cat => {
-                const group = list.filter(sound => sound.category === cat);
-                if (group.length > 0) {
-                    const header = document.createElement('div');
-                    header.textContent = cat;
-                    header.className = 'category-header';
-                    header.style.gridColumn = '1/-1';
-                    header.style.fontWeight = 'bold';
-                    header.style.margin = '10px 0 0 0';
-                    header.style.fontSize = '1.1em';
-                    soundboardGrid.appendChild(header);
-                    group.forEach(sound => {
-                        const idx = sounds.indexOf(sound);
-                        const button = document.createElement('button');
-                        button.classList.add('sound-button');
-                        button.textContent = sound.name;
-                        button.dataset.soundPath = sound.path;
-                        button.dataset.soundName = sound.name;
-                        if (sound.color) button.style.backgroundColor = sound.color;
-                        button.style.color = sound.textColor || "#fff";
-                        button.style.textShadow = "1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff";
-                        if (editMode) {
-                            button.style.outline = '2px dashed #007bff';
-                            button.title = 'Click to edit';
-                            button.onclick = (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                openEditModal(sound, idx);
-                            };
-                        } else {
-                            button.style.outline = '';
-                            button.title = '';
-                            button.onclick = () => {
-                                playSound(sound.path, button);
-                            };
-                        }
-                        soundboardGrid.appendChild(button);
-                    });
-                }
-            });
-            // Show uncategorized at the end
-            const uncategorized = list.filter(sound => !sound.category);
-            if (uncategorized.length > 0) {
-                const header = document.createElement('div');
-                header.textContent = 'Uncategorized';
-                header.className = 'category-header';
-                header.style.gridColumn = '1/-1';
-                header.style.fontWeight = 'bold';
-                header.style.margin = '10px 0 0 0';
-                header.style.fontSize = '1.1em';
-                soundboardGrid.appendChild(header);
-                uncategorized.forEach(sound => {
-                    const idx = sounds.indexOf(sound);
-                    const button = document.createElement('button');
-                    button.classList.add('sound-button');
-                    button.textContent = sound.name;
-                    button.dataset.soundPath = sound.path;
-                    button.dataset.soundName = sound.name;
-                    if (sound.color) button.style.backgroundColor = sound.color;
-                    button.style.color = sound.textColor || "#fff";
-                    button.style.textShadow = "1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff";
-                    if (editMode) {
-                        button.style.outline = '2px dashed #007bff';
-                        button.title = 'Click to edit';
-                        button.onclick = (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openEditModal(sound, idx);
-                        };
-                    } else {
-                        button.style.outline = '';
-                        button.title = '';
-                        button.onclick = () => {
-                            playSound(sound.path, button);
-                        };
-                    }
-                    soundboardGrid.appendChild(button);
-                });
-            }
-        } else {
-            list.forEach((sound, idx) => {
-                const button = document.createElement('button');
-                button.classList.add('sound-button');
-                button.textContent = sound.name;
-                button.dataset.soundPath = sound.path;
-                button.dataset.soundName = sound.name;
-                if (sound.color) button.style.backgroundColor = sound.color;
-                button.style.color = sound.textColor || "#fff";
-                button.style.textShadow = "1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff";
-                if (editMode) {
-                    button.style.outline = '2px dashed #007bff';
-                    button.title = 'Click to edit';
-                    button.onclick = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const origIdx = sounds.indexOf(sound);
-                        openEditModal(sound, origIdx);
-                    };
-                } else {
-                    button.style.outline = '';
-                    button.title = '';
-                    button.onclick = () => {
-                        playSound(sound.path, button);
-                    };
-                }
-                soundboardGrid.appendChild(button);
-            });
-        }
-        populateCategoryFilter();
-        saveState();
-        preloadAllSounds();
-    }
 
     // --- File upload functionality ---
     fileUploadInput.addEventListener('change', (event) => {
@@ -1089,6 +1036,8 @@ document.addEventListener('DOMContentLoaded', () => {
             audio.currentTime = 0;
         });
         currentlyPlayingAudio = [];
+        // Remove playing class from all buttons
+        document.querySelectorAll('.sound-button.playing').forEach(btn => btn.classList.remove('playing'));
     });
 
     // --- Controls event listeners ---

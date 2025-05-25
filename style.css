@@ -1,172 +1,221 @@
 body {
-    font-family: sans-serif;
+    font-family: 'Segoe UI', Arial, sans-serif;
     margin: 0;
-    background-color: #000; /* changed from #f0f0f0 to black */
-    color: #333;
-    display: flex;
-    justify-content: center;
-    padding: 20px;
+    background: #181f2a;
+    color: #e6eaf3;
+    min-height: 100vh;
+    padding: 0;
 }
 
 .container {
-    width: 95%;
+    width: 100%;
     max-width: 1200px;
-    background-color: #fdf6e3; /* light tan */
-    padding: 20px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    border-radius: 8px;
+    margin: 32px auto 0 auto;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0 0 32px 0;
 }
 
-.controls {
+header.controls {
+    background: #232b39;
+    border-radius: 12px;
+    margin-bottom: 28px;
+    padding: 24px 32px 18px 32px;
+    box-shadow: 0 2px 16px #0003;
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #ddd;
+    gap: 18px;
     align-items: flex-end;
     justify-content: space-between;
 }
 
-.control-group {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: nowrap;
+header.controls .control-group {
+    gap: 12px;
 }
 
-.control-group.search-stop {
+header.controls .control-group.search-stop {
     flex: 1 1 auto;
     justify-content: flex-end;
     gap: 10px;
-    display: flex;
-    align-items: center;
     min-width: 320px;
 }
 
-.controls button,
-.controls select,
-.controls input[type="text"],
-.controls input[type="search"],
-.custom-file-upload {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
+header.controls label,
+header.controls select,
+header.controls input[type="search"],
+header.controls button {
+    font-size: 15px;
 }
 
-.controls input[type="search"],
-.controls input[type="text"] {
-    min-width: 150px;
+header.controls select,
+header.controls input[type="search"] {
+    background: #232b39;
+    color: #e6eaf3;
+    border: 1.5px solid #2c3442;
+    border-radius: 6px;
+    padding: 8px 14px;
+    transition: border 0.18s, background 0.18s;
+}
+
+header.controls select:focus,
+header.controls input[type="search"]:focus {
+    border: 1.5px solid #4f8cff;
+    background: #232b39;
+    outline: none;
 }
 
 #search-input {
-    min-width: 260px;
-    flex: 1 1 auto;
-    max-width: 400px;
+    min-width: 220px;
+    background: #232b39;
+    color: #e6eaf3;
+    border: 1.5px solid #2c3442;
+    border-radius: 6px;
+    padding: 8px 14px;
 }
 
 .custom-file-upload {
-    display: inline-block;
+    background: #232b39;
+    color: #e6eaf3;
+    border: 1.5px solid #2c3442;
+    border-radius: 6px;
+    padding: 8px 14px;
     cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
+    transition: background 0.18s, border 0.18s;
 }
-
 .custom-file-upload:hover {
-    background-color: #0056b3;
+    background: #2c3442;
+    border: 1.5px solid #4f8cff;
 }
 
 input[type="file"] {
-    display: none; /* Hide the default file input */
+    display: none;
+}
+
+#edit-button {
+    background: #232b39;
+    color: #ffc107;
+    border: 1.5px solid #ffc107;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border 0.18s;
+}
+#edit-button.active,
+#edit-button:hover {
+    background: #ffc107;
+    color: #232b39;
+    border: 1.5px solid #ffc107;
 }
 
 #stop-all-button {
-    background-color: #dc3545;
-    color: white;
+    background: #dc3545;
+    color: #fff;
     border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-weight: 600;
     margin-left: 10px;
-    flex-shrink: 0;
+    transition: background 0.18s;
 }
-
 #stop-all-button:hover {
-    background-color: #c82333;
+    background: #b52a37;
 }
 
 .soundboard-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin-top: 0;
+}
+
+.category-block {
+    background: #232b39;
+    border-radius: 14px;
+    padding: 18px 24px 20px 24px;
+    margin-bottom: 0;
+    box-shadow: 0 2px 12px #0002;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    font-size: 1.25em;
+    font-weight: 700;
+    margin-bottom: 16px;
+    gap: 10px;
+    letter-spacing: 0.01em;
+}
+
+.category-header .cat-icon {
+    font-size: 1.2em;
+    margin-right: 6px;
+}
+
+.category-header[data-category="General"] { color: #e6eaf3; }
+.category-header[data-category="Sound Effects"] { color: #ff5252; }
+.category-header[data-category="Music"] { color: #4f8cff; }
+.category-header[data-category="Crowd & Reactions"] { color: #ffc107; }
+.category-header[data-category="Gaming"] { color: #00e676; }
+.category-header[data-category="Trumpism"] { color: #ff6f00; }
+.category-header[data-category="Money"] { color: #00e676; }
+.category-header[data-category="Adult"] { color: #e040fb; }
+.category-header[data-category="Bodily Functions"] { color: #ffb300; }
+
+.category-sound-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Responsive, aims for 6 columns on wider screens */
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 16px;
 }
 
 .sound-button {
-    padding: 20px;
-    background-color: #6c757d;
-    color: white;
+    padding: 18px 0;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
+    font-size: 1.08em;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 16px;
     text-align: center;
-    min-height: 80px; /* Ensure buttons have some height */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal; /* Allow text wrapping */
-    /* Add 3D text effect and better readability */
-    text-shadow:
-        1.5px 1.5px 0 #222,
-        0 2.5px 8px #000a,
-        0 0 2px #fff;
-    font-weight: 700;
-    letter-spacing: 0.01em;
     transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-    /* Ensure text color is always readable */
-    /* color is set inline by JS */
+    box-shadow: 0 2px 8px #0002;
+    outline: none;
+    text-shadow: 1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff;
+    letter-spacing: 0.01em;
+    margin: 0;
+    min-height: 56px;
+    color: #fff;
 }
 
-.sound-button:hover {
-    background-color: #5a6268;
-}
+.sound-button[data-category="General"] { background: #49536b; }
+.sound-button[data-category="Sound Effects"] { background: #ff5252; }
+.sound-button[data-category="Music"] { background: #4f8cff; }
+.sound-button[data-category="Crowd & Reactions"] { background: #ffc107; color: #232b39; }
+.sound-button[data-category="Gaming"] { background: #00e676; color: #232b39; }
+.sound-button[data-category="Trumpism"] { background: #ff6f00; }
+.sound-button[data-category="Money"] { background: #00e676; color: #232b39; }
+.sound-button[data-category="Adult"] { background: #e040fb; }
+.sound-button[data-category="Bodily Functions"] { background: #ffb300; color: #232b39; }
+.sound-button[data-category="Uncategorized"] { background: #6c757d; }
 
+.sound-button:hover,
 .sound-button.playing {
-    background-color: #28a745; /* Green when playing */
-}
-
-/* Media query to more strictly enforce 6 columns on larger screens if needed */
-@media (min-width: 992px) { /* Adjust breakpoint as needed */
-    .soundboard-grid {
-        grid-template-columns: repeat(6, 1fr);
-    }
+    filter: brightness(1.15) saturate(1.2);
+    box-shadow: 0 4px 16px #0003;
 }
 
 @media (max-width: 900px) {
-    .controls {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-    .control-group,
-    .control-group.search-stop {
-        flex-wrap: wrap;
-        min-width: 0;
-        width: 100%;
-        justify-content: flex-start;
-    }
-    #search-input {
-        min-width: 0;
-        width: 100%;
-        max-width: 100%;
-    }
+    .container { padding: 0 2vw; }
+    header.controls { padding: 16px 2vw 12px 2vw; }
+    .category-block { padding: 12px 2vw 12px 2vw; }
+    .category-header { font-size: 1.1em; }
+    .category-sound-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
 
-#edit-button.active {
-    background-color: #ffc107;
-    color: #333;
+@media (max-width: 600px) {
+    .category-block { padding: 8px 1vw 8px 1vw; }
+    .category-header { font-size: 1em; }
+    .sound-button { font-size: 0.98em; padding: 12px 0; }
 }
 
 /* Modal styles */
