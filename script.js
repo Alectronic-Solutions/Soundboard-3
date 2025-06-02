@@ -814,12 +814,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Defensive: check if path is valid and playable
-        if (!soundPath || !canPlayAudio(soundPath)) {
-            alert('Your browser cannot play this audio type or file is missing.');
+        if (!soundPath) {
+            alert('No sound file specified.');
             return;
         }
 
-        // Play sound (allow overlap with other buttons)
+        // Try to play the sound, but handle errors more gracefully
         let audio;
         if (preloadedAudio.has(soundPath)) {
             audio = preloadedAudio.get(soundPath).cloneNode(false);
@@ -829,9 +829,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         button.classList.add('playing');
-        audio.play().catch(() => {
+        // Try to play and check for errors
+        audio.play().then(() => {
+            // Success, do nothing
+        }).catch((err) => {
             button.classList.remove('playing');
-            alert('Failed to play sound. File may be missing or unsupported.');
+            buttonAudioMap.delete(button);
+            // Try to give a more helpful error message
+            if (audio.error && audio.error.code === 4) {
+                alert('Failed to play sound. File may be missing or unsupported format.');
+            } else {
+                alert('Failed to play sound. ' + (err && err.message ? err.message : 'File may be missing or unsupported.'));
+            }
         });
 
         buttonAudioMap.set(button, audio);
