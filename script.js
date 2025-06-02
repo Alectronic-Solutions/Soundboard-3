@@ -372,6 +372,21 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Oral Sex', path: 'sounds/Oral Sex.ogg', category: 'Adult' },
     ];
 
+    // --- Category icon mapping ---
+    const categoryIcons = {
+        "General": "🔊",
+        "Sound Effects": "✨",
+        "Music": "🎵",
+        "Crowd & Reactions": "👏",
+        "Gaming": "🎮",
+        "Trumpism": "🇺🇸",
+        "Money": "💰",
+        "Adult": "🔞",
+        "Bodily Functions": "💨",
+        "Uncategorized": "❓",
+        "no category": "❓"
+    };
+
     // --- Category Group Order Logic ---
     let categoryOrder = [];
 
@@ -554,65 +569,34 @@ document.addEventListener('DOMContentLoaded', () => {
         sounds.forEach(s => soundMap.set(s.path, s));
     }
 
-    // --- Preload all sounds in parallel, only once per path ---
-    // Only declare preloadedAudio ONCE, here:
-    const preloadedAudio = new Map();
+    // --- Track which button is playing which audio ---
+    const buttonAudioMap = new Map();
 
+    // --- Preload all sounds in parallel, only once per path ---
+    const preloadedAudio = new Map();
     function preloadAllSounds() {
-        preloadedAudio.clear();
         const uniquePaths = new Set(sounds.map(s => s.path));
         uniquePaths.forEach(path => {
-            if (!path || path.startsWith('blob:')) return;
+            if (!path || preloadedAudio.has(path)) return;
             const audio = new Audio();
             audio.preload = 'auto';
             audio.src = path;
-            const ext = path.split('.').pop().toLowerCase();
-            let mime = '';
-            if (ext === 'ogg') mime = 'audio/ogg';
-            else if (ext === 'mp3') mime = 'audio/mpeg';
-            else if (ext === 'wav') mime = 'audio/wav';
-            else if (ext === 'm4a') mime = 'audio/mp4';
-            if (audio.canPlayType(mime)) {
-                audio.load();
-                preloadedAudio.set(path, audio);
-            }
+            preloadedAudio.set(path, audio);
         });
     }
 
-    // --- Category filter population ---
-    function populateCategoryFilter() {
-        const prev = categorySelect.value;
-        // Get all categories from current sounds
-        const categories = Array.from(new Set(sounds.map(s => s.category).filter(Boolean)));
-        categorySelect.innerHTML = '<option value="all">All Categories</option>';
-        categories.forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat;
-            opt.textContent = cat;
-            categorySelect.appendChild(opt);
-        });
-        // Restore previous selection if possible
-        if (categories.includes(prev)) {
-            categorySelect.value = prev;
-        } else {
-            categorySelect.value = 'all';
-            currentCategory = 'all';
-        }
+    // --- Helper: check if audio is playable before playing ---
+    function canPlayAudio(path) {
+        if (!path) return false;
+        const ext = path.split('.').pop().toLowerCase();
+        const testAudio = document.createElement('audio');
+        let mime = '';
+        if (ext === 'ogg') mime = 'audio/ogg';
+        else if (ext === 'mp3') mime = 'audio/mpeg';
+        else if (ext === 'wav') mime = 'audio/wav';
+        else if (ext === 'm4a') mime = 'audio/mp4';
+        return testAudio.canPlayType(mime) !== '';
     }
-
-    // --- Category icon mapping ---
-    const categoryIcons = {
-        "General": "🔊",
-        "Sound Effects": "✨",
-        "Music": "🎵",
-        "Crowd & Reactions": "👏",
-        "Gaming": "🎮",
-        "Trumpism": "🇺🇸",
-        "Money": "💰",
-        "Adult": "🔞",
-        "Bodily Functions": "💨",
-        "Uncategorized": "❓"
-    };
 
     // --- Main render logic ---
     function renderSoundButtons() {
@@ -625,10 +609,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentCategory) currentCategory = 'all';
         if (typeof currentSearch === 'undefined') currentSearch = '';
 
+        // --- Add "no category" to categoryOrder if not present ---
+        if (!categoryOrder.includes("no category")) {
+            categoryOrder.push("no category");
+        }
+
         // Grouped by category block
         if (currentSort === 'category' && currentCategory === 'all' && !currentSearch) {
             categoryOrder.forEach(cat => {
-                const group = list.filter(sound => sound.category === cat);
+                // Special handling for "no category"
+                let group;
+                if (cat === "no category") {
+                    group = list.filter(sound => !sound.category || sound.category.trim() === "");
+                } else {
+                    group = list.filter(sound => sound.category === cat);
+                }
                 if (group.length > 0) {
                     const block = document.createElement('section');
                     block.className = 'category-block';
@@ -657,9 +652,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const idx = sounds.indexOf(sound);
                         const button = createSoundButton(sound, idx);
                         button.setAttribute('data-category', cat);
-                        // --- Fix: Always attach a click handler to play the sound ---
                         if (!editMode) {
-                            button.onclick = () => playSound(sound.path, button);
+                            button.onclick = () => playOrStopSound(sound.path, button);
                         }
                         grid.appendChild(button);
                     });
@@ -694,9 +688,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const idx = sounds.indexOf(sound);
                     const button = createSoundButton(sound, idx);
                     button.setAttribute('data-category', 'Uncategorized');
-                    // --- Fix: Always attach a click handler to play the sound ---
+                    // --- Fix: Always attach a click handler to playOrStopSound ---
                     if (!editMode) {
-                        button.onclick = () => playSound(sound.path, button);
+                        button.onclick = () => playOrStopSound(sound.path, button);
                     }
                     grid.appendChild(button);
                 });
@@ -710,11 +704,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const grid = document.createElement('div');
             grid.className = 'category-sound-grid';
             list.forEach((sound, idx) => {
+                // Assign "no category" for display if missing
+                const cat = sound.category && sound.category.trim() ? sound.category : "no category";
                 const button = createSoundButton(sound, sounds.indexOf(sound));
-                button.setAttribute('data-category', sound.category || 'Uncategorized');
-                // --- Fix: Always attach a click handler to play the sound ---
+                button.setAttribute('data-category', cat);
                 if (!editMode) {
-                    button.onclick = () => playSound(sound.path, button);
+                    button.onclick = () => playOrStopSound(sound.path, button);
                 }
                 grid.appendChild(button);
             });
@@ -723,7 +718,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         populateCategoryFilter();
         saveState();
-        preloadAllSounds();
+        // Do NOT call preloadAllSounds here for every render!
+    }
+
+    // --- Category filter population ---
+    function populateCategoryFilter() {
+        const prev = categorySelect.value;
+        // Show all categories from all sounds, not just filtered
+        const categories = Array.from(new Set(sounds.map(s => s.category && s.category.trim() ? s.category : "no category")));
+        // Ensure "no category" is always present if any sound is uncategorized
+        categorySelect.innerHTML = '<option value="all">All Categories</option>';
+        categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            categorySelect.appendChild(opt);
+        });
+        // Restore previous selection if possible
+        if (categories.includes(prev)) {
+            categorySelect.value = prev;
+        } else {
+            categorySelect.value = 'all';
+            currentCategory = 'all';
+        }
     }
 
     // --- Helper: getFilteredSounds ---
@@ -734,15 +751,19 @@ document.addEventListener('DOMContentLoaded', () => {
             list = list.filter(sound => sound.name.toLowerCase().includes(searchTerm));
         }
         if (currentCategory !== 'all') {
-            list = list.filter(sound => sound.category === currentCategory);
+            if (currentCategory === "no category") {
+                list = list.filter(sound => !sound.category || sound.category.trim() === "");
+            } else {
+                list = list.filter(sound => sound.category === currentCategory);
+            }
         }
         // Sort
         if (currentSort === 'name') {
             list = [...list].sort((a, b) => a.name.localeCompare(b.name));
         } else if (currentSort === 'category') {
             list = [...list].sort((a, b) => {
-                const idxA = a.category ? categoryOrder.indexOf(a.category) : -1;
-                const idxB = b.category ? categoryOrder.indexOf(b.category) : -1;
+                const idxA = a.category ? categoryOrder.indexOf(a.category) : categoryOrder.indexOf("no category");
+                const idxB = b.category ? categoryOrder.indexOf(b.category) : categoryOrder.indexOf("no category");
                 if (idxA === idxB) {
                     return a.name.localeCompare(b.name);
                 }
@@ -772,43 +793,56 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             button.style.outline = '';
             button.title = '';
-            // --- Remove onclick here, always set in renderSoundButtons ---
+            // Attach play/stop handler
+            button.onclick = () => playOrStopSound(sound.path, button);
         }
         return button;
     }
 
-    function playSound(soundPath, button) {
-        if (editMode) return; // Don't play in edit mode
+    // --- Play or stop sound for a button ---
+    function playOrStopSound(soundPath, button) {
+        if (editMode) return;
 
+        // If this button is already playing, stop it
+        if (buttonAudioMap.has(button)) {
+            const audio = buttonAudioMap.get(button);
+            audio.pause();
+            audio.currentTime = 0;
+            button.classList.remove('playing');
+            buttonAudioMap.delete(button);
+            return;
+        }
+
+        // Defensive: check if path is valid and playable
+        if (!soundPath || !canPlayAudio(soundPath)) {
+            alert('Your browser cannot play this audio type or file is missing.');
+            return;
+        }
+
+        // Play sound (allow overlap with other buttons)
         let audio;
         if (preloadedAudio.has(soundPath)) {
-            const orig = preloadedAudio.get(soundPath);
-            audio = orig.cloneNode(true);
+            audio = preloadedAudio.get(soundPath).cloneNode(false);
+            audio.src = soundPath;
         } else {
             audio = new Audio(soundPath);
-            const ext = soundPath.split('.').pop().toLowerCase();
-            let mime = '';
-            if (ext === 'ogg') mime = 'audio/ogg';
-            else if (ext === 'mp3') mime = 'audio/mpeg';
-            else if (ext === 'wav') mime = 'audio/wav';
-            else if (ext === 'm4a') mime = 'audio/mp4';
-            if (!audio.canPlayType(mime)) {
-                alert('Your browser cannot play this audio type: ' + ext);
-                return;
-            }
         }
-        // Visual feedback for playing
+
         button.classList.add('playing');
         audio.play().catch(() => {
+            button.classList.remove('playing');
             alert('Failed to play sound. File may be missing or unsupported.');
         });
-        currentlyPlayingAudio.push(audio);
+
+        buttonAudioMap.set(button, audio);
+
         audio.addEventListener('ended', () => {
-            currentlyPlayingAudio = currentlyPlayingAudio.filter(a => a !== audio);
             button.classList.remove('playing');
+            buttonAudioMap.delete(button);
         });
         audio.addEventListener('pause', () => {
             button.classList.remove('playing');
+            buttonAudioMap.delete(button);
         });
     }
 
@@ -841,33 +875,43 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSoundButtons();
         saveState();
         fileUploadInput.value = '';
-        preloadAllSounds();
+        preloadAllSounds(); // Preload new uploaded sounds if needed
     });
 
     // --- Stop All functionality ---
     stopAllButton.addEventListener('click', () => {
-        currentlyPlayingAudio.forEach(audio => {
+        // Stop all currently playing audios
+        buttonAudioMap.forEach((audio, button) => {
             audio.pause();
             audio.currentTime = 0;
+            button.classList.remove('playing');
         });
+        buttonAudioMap.clear();
         currentlyPlayingAudio = [];
-        // Remove playing class from all buttons
         document.querySelectorAll('.sound-button.playing').forEach(btn => btn.classList.remove('playing'));
     });
 
-    // --- Controls event listeners ---
-    searchInput.addEventListener('input', () => {
-        currentSearch = searchInput.value;
-        renderSoundButtons();
-    });
-    categorySelect.addEventListener('change', () => {
-        currentCategory = categorySelect.value;
-        renderSoundButtons();
-    });
-    document.getElementById('sort-select').addEventListener('change', function () {
-        currentSort = this.value;
-        renderSoundButtons();
-    });
+    // --- Category filter population ---
+    function populateCategoryFilter() {
+        const prev = categorySelect.value;
+        // Show all categories from all sounds, not just filtered
+        const categories = Array.from(new Set(sounds.map(s => s.category && s.category.trim() ? s.category : "no category")));
+        // Ensure "no category" is always present if any sound is uncategorized
+        categorySelect.innerHTML = '<option value="all">All Categories</option>';
+        categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            categorySelect.appendChild(opt);
+        });
+        // Restore previous selection if possible
+        if (categories.includes(prev)) {
+            categorySelect.value = prev;
+        } else {
+            categorySelect.value = 'all';
+            currentCategory = 'all';
+        }
+    }
 
     // --- Modal logic ---
     function openEditModal(sound, idx) {
@@ -1031,12 +1075,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Stop All functionality ---
     stopAllButton.addEventListener('click', () => {
-        currentlyPlayingAudio.forEach(audio => {
+        // Stop all currently playing audios
+        buttonAudioMap.forEach((audio, button) => {
             audio.pause();
             audio.currentTime = 0;
+            button.classList.remove('playing');
         });
+        buttonAudioMap.clear();
         currentlyPlayingAudio = [];
-        // Remove playing class from all buttons
         document.querySelectorAll('.sound-button.playing').forEach(btn => btn.classList.remove('playing'));
     });
 
