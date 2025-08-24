@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const editButton = document.getElementById('edit-button');
 
     // --- GLOBAL STATE ---
-    let currentlyPlayingAudio = [];
     let editMode = false;
     let editIdx = null;
     // Always sort by category
@@ -918,8 +917,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.remove('playing');
         });
         buttonAudioMap.clear();
-        currentlyPlayingAudio = [];
-        document.querySelectorAll('.sound-button.playing').forEach(btn => btn.classList.remove('playing'));
     });
 
     // --- Controls event listeners ---
@@ -1074,8 +1071,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Debugging: log sound names ---
-    document.getElementById('debug-log-sounds').addEventListener('click', () => {
-        console.log('Sounds:', sounds.map(s => s.name));
-    });
+    // --- Debugging: log sound names (only if debug button exists) ---
+    const _dbgBtn = document.getElementById && document.getElementById('debug-log-sounds');
+    if (_dbgBtn) {
+        _dbgBtn.addEventListener('click', () => {
+            console.log('Sounds:', sounds.map(s => s.name));
+        });
+    }
+    // If you want a persistent debug button in the UI, add:
+    // <button id="debug-log-sounds" style="display:none">Debug</button>
+    // to index.html (hidden by default) or remove this block if you don't need it.
 });

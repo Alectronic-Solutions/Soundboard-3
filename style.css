@@ -8,14 +8,15 @@ body {
 }
 
 .container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 12px auto 0 auto;
-    background: none;
-    box-shadow: none;
-    border-radius: 0;
-    /* almost no left/right padding so content uses full width */
-    padding: 0 6px 8px 6px;
+	/* remove horizontal gutters so page content reaches the edges */
+	width: 100%;
+	max-width: 1200px;
+	margin: 12px auto 0 auto;
+	background: none;
+	box-shadow: none;
+	border-radius: 0;
+	/* removed left/right padding */
+	padding: 0;
 }
 
 header.controls {
@@ -54,7 +55,8 @@ header.controls.scrolled {
 		flex-wrap: nowrap;
 		overflow-x: auto;
 		-webkit-overflow-scrolling: touch;
-		padding: 8px 6px;
+		/* remove horizontal page padding */
+		padding: 8px 0;
 		gap: 6px;
 	}
 
@@ -281,17 +283,21 @@ input[type="file"] {
 }
 
 @media (max-width: 900px) {
-    .container { padding: 0 2vw; }
-    header.controls { padding: 16px 2vw 12px 2vw; }
-    .category-block { padding: 12px 2vw 12px 2vw; }
-    .category-header { font-size: 1.1em; }
-    .category-sound-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+	/* remove 2vw horizontal padding so page is flush at narrower widths too */
+	.container { padding: 0; }
+	/* keep header vertical padding but remove horizontal gutters */
+	header.controls { padding: 16px 0 12px 0; }
+	/* keep category block vertical padding only */
+	.category-block { padding: 12px 0; }
+	.category-header { font-size: 1.1em; }
+	.category-sound-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 }
 
 @media (max-width: 600px) {
-    .category-block { padding: 8px 1vw 8px 1vw; }
-    .category-header { font-size: 1em; }
-    .sound-button { font-size: 0.92em; padding: 6px 6px; min-height: 36px; }
+	/* ensure category blocks don't add left/right gutter on very small screens */
+	.category-block { padding: 8px 0; }
+	.category-header { font-size: 1em; }
+	.sound-button { font-size: 0.92em; padding: 6px 6px; min-height: 36px; }
 }
 
 /* Modal styles */
