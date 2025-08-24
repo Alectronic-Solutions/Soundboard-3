@@ -16,10 +16,6 @@
                 <select id="category-select">
                     <option value="all">All Categories</option>
                 </select>
-                <select id="sort-select">
-                    <option value="name">Sort by Name</option>
-                    <option value="category">Sort by Category</option>
-                </select>
             </div>
             <div class="control-group search-stop">
                 <input type="search" id="search-input" placeholder="Search Sounds...">
@@ -42,11 +38,21 @@
                     </label>
                     <label style="display:flex;gap:12px;align-items:center;">
                         Color:
-                        <input type="color" id="edit-sound-color">
-                        <input type="text" id="edit-sound-color-text" placeholder="Or enter CSS color">
+                        <select id="edit-sound-color-select" aria-label="Button color">
+                            <option value="">Default</option>
+                            <option value="#49536b">Gray</option>
+                            <option value="#4f8cff">Blue</option>
+                            <option value="#ff5252">Red</option>
+                            <option value="#ffc107">Yellow</option>
+                            <option value="#00e676">Green</option>
+                            <option value="#e040fb">Purple</option>
+                            <option value="#000000">Black</option>
+                            <option value="#ffffff">White</option>
+                            <option value="#ff6f00">Orange</option>
+                        </select>
+                        <span id="edit-color-preview" style="display:inline-block;width:20px;height:20px;border-radius:4px;margin-left:8px;border:1px solid #ccc;background:transparent;"></span>
                         <span style="margin-left:10px;">Text Color:</span>
                         <input type="color" id="edit-sound-textcolor">
-                        <input type="text" id="edit-sound-textcolor-text" placeholder="Or enter text color">
                     </label>
                     <label>
                         Category:

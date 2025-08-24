@@ -10,28 +10,76 @@ body {
 .container {
     width: 100%;
     max-width: 1200px;
-    margin: 32px auto 0 auto;
+    margin: 12px auto 0 auto;
     background: none;
     box-shadow: none;
     border-radius: 0;
-    padding: 0 0 32px 0;
+    /* almost no left/right padding so content uses full width */
+    padding: 0 6px 8px 6px;
 }
 
 header.controls {
+    position: sticky;
+    top: 8px;
+    z-index: 200;
     background: #232b39;
-    border-radius: 12px;
-    margin-bottom: 28px;
-    padding: 24px 32px 18px 32px;
-    box-shadow: 0 2px 16px #0003;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    /* much tighter padding */
+    padding: 10px 8px;
+    box-shadow: 0 2px 10px #0003;
     display: flex;
     flex-wrap: wrap;
-    gap: 18px;
-    align-items: flex-end;
+    gap: 8px;
+    align-items: center;
     justify-content: space-between;
+    transition: box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+/* Elevated hover/scroll appearance */
+header.controls.scrolled {
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    transform: translateY(-2px);
+}
+
+/* Reduce top offset on very small screens so sticky header fits */
+@media (max-width: 600px) {
+    header.controls { top: 6px; }
+}
+
+/* Make header try to stay on one line on small screens */
+@media (max-width: 600px) {
+	/* keep header items on a single row, allow horizontal scroll if needed */
+	header.controls {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		padding: 8px 6px;
+		gap: 6px;
+	}
+
+	/* avoid forcing minimum widths that cause wrapping */
+	header.controls .control-group.search-stop { min-width: 0; gap: 6px; }
+
+	/* shrink controls so they can fit on one line */
+	.custom-file-upload, #edit-button, #stop-all-button, header.controls select, #search-input {
+		padding: 6px 8px;
+		font-size: 14px;
+		min-width: 0;
+	}
+
+	/* allow search input to shrink */
+	#search-input { min-width: 110px; flex: 0 1 110px; }
+
+	/* make the category dropdown smaller */
+	#category-select { flex: 0 0 auto; min-width: 90px; }
+
+	/* ensure control groups do not expand awkwardly */
+	.header-space-fix { flex: 0 0 auto; }
 }
 
 header.controls .control-group {
-    gap: 12px;
+    gap: 6px;
 }
 
 header.controls .control-group.search-stop {
@@ -126,31 +174,46 @@ input[type="file"] {
 .soundboard-grid {
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 8px; /* much tighter between groups */
     margin-top: 0;
 }
 
 .category-block {
     background: #232b39;
-    border-radius: 14px;
-    padding: 18px 24px 20px 24px;
+    border-radius: 10px;
+    /* remove left/right padding so category content is flush with edges */
+    padding: 4px 0 6px 0;
     margin-bottom: 0;
-    box-shadow: 0 2px 12px #0002;
+    box-shadow: 0 2px 8px #0002;
 }
 
 .category-header {
-    display: flex;
-    align-items: center;
-    font-size: 1.25em;
+    /* make header occupy no visible space so there is no heading gap */
+    display: block;
+    font-size: 0;
     font-weight: 700;
-    margin-bottom: 16px;
-    gap: 10px;
-    letter-spacing: 0.01em;
+    margin: 0;
+    gap: 0;
+    height: 0;
+    overflow: hidden;
+    padding: 0;
+    line-height: 0;
 }
 
 .category-header .cat-icon {
-    font-size: 1.2em;
-    margin-right: 6px;
+    font-size: 1.15rem;
+    margin-right: 0; /* remove left gutter from icon */
+    line-height: 1;
+    display: inline-block;
+}
+
+/* style the small count shown beside the icon */
+.category-header .cat-count {
+    font-size: 0.78rem;
+    opacity: 0.75;
+    color: inherit;
+    margin-left: 4px;
+    line-height: 1;
 }
 
 .category-header[data-category="General"] { color: #e6eaf3; }
@@ -165,25 +228,27 @@ input[type="file"] {
 
 .category-sound-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px; /* tighter gap between buttons */
+    margin: 0; /* ensure grid is flush with block edges */
+    padding: 0;
 }
 
 .sound-button {
-    padding: 18px 0;
+    padding: 4px 6px; /* almost no padding */
     border: none;
-    border-radius: 8px;
-    font-size: 1.08em;
+    border-radius: 6px;
+    font-size: 0.95em;
     font-weight: 600;
     cursor: pointer;
     text-align: center;
     transition: background 0.18s, color 0.18s, box-shadow 0.18s;
     box-shadow: 0 2px 8px #0002;
     outline: none;
-    text-shadow: 1.5px 1.5px 0 #222, 0 2.5px 8px #000a, 0 0 2px #fff;
+    text-shadow: 0.6px 0.6px 0 #0006;
     letter-spacing: 0.01em;
     margin: 0;
-    min-height: 56px;
+    min-height: 32px; /* smaller height */
     color: #fff;
 }
 
@@ -193,7 +258,11 @@ input[type="file"] {
 .sound-button[data-category="Crowd & Reactions"] { background: #ffc107; color: #232b39; }
 .sound-button[data-category="Gaming"] { background: #00e676; color: #232b39; }
 .sound-button[data-category="Trumpism"] { background: #ff6f00; }
-.sound-button[data-category="Money"] { background: #00e676; color: #232b39; }
+.sound-button[data-category="Money"] {
+    background: linear-gradient(180deg, #00c853 0%, #00e676 100%); /* bright green gradient */
+    color: #072216; /* dark text for contrast */
+    box-shadow: 0 4px 14px rgba(0, 200, 120, 0.12);
+}
 .sound-button[data-category="Adult"] { background: #e040fb; }
 .sound-button[data-category="Bodily Functions"] { background: #ffb300; color: #232b39; }
 .sound-button[data-category="Uncategorized"] { background: #6c757d; }
@@ -204,18 +273,25 @@ input[type="file"] {
     box-shadow: 0 4px 16px #0003;
 }
 
+/* Hover/playing adjustments for Money buttons */
+.sound-button[data-category="Money"]:hover,
+.sound-button[data-category="Money"].playing {
+    filter: brightness(1.08) saturate(1.15);
+    box-shadow: 0 6px 18px rgba(0, 200, 120, 0.18);
+}
+
 @media (max-width: 900px) {
     .container { padding: 0 2vw; }
     header.controls { padding: 16px 2vw 12px 2vw; }
     .category-block { padding: 12px 2vw 12px 2vw; }
     .category-header { font-size: 1.1em; }
-    .category-sound-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    .category-sound-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 }
 
 @media (max-width: 600px) {
     .category-block { padding: 8px 1vw 8px 1vw; }
     .category-header { font-size: 1em; }
-    .sound-button { font-size: 0.98em; padding: 12px 0; }
+    .sound-button { font-size: 0.92em; padding: 6px 6px; min-height: 36px; }
 }
 
 /* Modal styles */
@@ -401,6 +477,11 @@ input[type="file"] {
     margin-top: 16px;
     border-bottom: 1px solid #e0eaff;
     padding-bottom: 3px;
+}
+
+.modal-content #category-order-list li .cat-name {
+	color: #222; /* darker text for readability */
+	font-weight: 600;
 }
 
 @media (max-width: 600px) {
