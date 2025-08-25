@@ -514,6 +514,21 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // --- Shared palette used for both button background and text color dropdowns
+    const PALETTE = [
+        { label: 'Default', value: '' },
+        { label: 'White',   value: '#ffffff' },
+        { label: 'Black',   value: '#000000' },
+        { label: 'Dark',    value: '#232b39' },
+        { label: 'Gray',    value: '#49536b' },
+        { label: 'Blue',    value: '#4f8cff' },
+        { label: 'Red',     value: '#ff5252' },
+        { label: 'Yellow',  value: '#ffc107' },
+        { label: 'Green',   value: '#00e676' },
+        { label: 'Purple',  value: '#e040fb' },
+        { label: 'Orange',  value: '#ff6f00' }
+    ];
+
     // --- Fast lookup for sounds by name/path ---
     let soundMap = new Map();
     function updateSoundMap() {
@@ -525,19 +540,74 @@ document.addEventListener('DOMContentLoaded', () => {
     const buttonAudioMap = new Map();
 
     // --- Preload all sounds in parallel, only once per path ---
+    // Map of successfully preloaded Audio objects (originalPath -> Audio)
     const preloadedAudio = new Map();
+    // Map of encoded/actual src -> originalPath (so encoded loads can be looked up by original path)
+    const preloadedEncodedToOriginal = new Map();
+    // Set of paths that have failed preload attempts (to avoid repeated warnings)
+    const failedPreloads = new Set();
+
+    // Return candidate srcs to try loading for a given original path.
+    function candidateSrcsFor(path) {
+        const list = [path];
+        try {
+            const enc = encodeURI(path);
+            if (enc && !list.includes(enc)) list.push(enc);
+            // also try replacing spaces explicitly (some systems use unencoded spaces)
+            const spaces = path.replace(/ /g, '%20');
+            if (spaces && !list.includes(spaces)) list.push(spaces);
+        } catch (e) { /* ignore */ }
+        return list;
+    }
+
     function preloadAllSounds() {
-        const uniquePaths = new Set(sounds.map(s => s.path));
-        uniquePaths.forEach(path => {
-            if (!path || preloadedAudio.has(path)) return;
-            const audio = new Audio();
-            audio.preload = 'auto';
-            audio.src = path;
-            // log load errors for debugging
-            audio.addEventListener('error', () => {
-                console.warn('Preload error for', path, audio.error && audio.error.code);
-            });
-            preloadedAudio.set(path, audio);
+        const uniquePaths = Array.from(new Set(sounds.map(s => s.path).filter(Boolean)));
+        uniquePaths.forEach(async (originalPath) => {
+            if (!originalPath || preloadedAudio.has(originalPath) || failedPreloads.has(originalPath)) return;
+
+            const candidates = candidateSrcsFor(originalPath);
+            let succeeded = false;
+
+            for (const srcCandidate of candidates) {
+                // skip blob/data urls for HEAD checks; let audio handle blob: directly
+                try {
+                    const audio = new Audio();
+                    audio.preload = 'auto';
+                    audio.src = srcCandidate;
+
+                    const loaded = await new Promise((resolve) => {
+                        let done = false;
+                        const onSuccess = () => { if (!done) { done = true; resolve({ ok: true, audio }); } };
+                        const onError = () => { if (!done) { done = true; resolve({ ok: false }); } };
+                        audio.addEventListener('canplaythrough', onSuccess, { once: true });
+                        audio.addEventListener('error', onError, { once: true });
+                        // fallback timeout
+                        setTimeout(() => { if (!done) { done = true; resolve({ ok: false }); } }, 4500);
+                        try { audio.load(); } catch (e) { /* ignore */ }
+                    });
+
+                    if (loaded.ok) {
+                        // store under originalPath; also remember which src was successful
+                        preloadedAudio.set(originalPath, loaded.audio);
+                        preloadedEncodedToOriginal.set(srcCandidate, originalPath);
+                        // also map the encodeURI(originalPath) to originalPath if different
+                        try {
+                            const enc = encodeURI(originalPath);
+                            if (enc !== srcCandidate) preloadedEncodedToOriginal.set(enc, originalPath);
+                        } catch (e) { /* ignore */ }
+                        console.debug('Preloaded audio for', originalPath, 'via', srcCandidate);
+                        succeeded = true;
+                        break;
+                    }
+                } catch (err) {
+                    // continue to next candidate
+                }
+            }
+
+            if (!succeeded) {
+                failedPreloads.add(originalPath);
+                console.warn('Preload failed for', originalPath, '- tried variants:', candidates);
+            }
         });
     }
 
@@ -727,10 +797,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editMode) {
             button.style.outline = '2px dashed #007bff';
             button.title = 'Click to edit';
+            // compute index at click time to avoid stale indices
             button.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                openEditModal(sound, idx);
+                openEditModal(sound, sounds.indexOf(sound));
             };
         } else {
             button.style.outline = '';
@@ -798,14 +869,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const path = candidates[i];
-            let audio;
-            if (preloadedAudio.has(path)) {
-                audio = preloadedAudio.get(path).cloneNode(false);
-                audio.src = path;
+            let audio = null;
+            // If we preloaded the original path (or an encoded variant), use the preloaded Audio clone
+            const tryGetPreloaded = (p) => {
+                if (preloadedAudio.has(p)) return preloadedAudio.get(p).cloneNode(false);
+                const enc = (() => { try { return encodeURI(p); } catch (e) { return null; } })();
+                if (enc && preloadedEncodedToOriginal.has(enc)) {
+                    const orig = preloadedEncodedToOriginal.get(enc);
+                    if (preloadedAudio.has(orig)) return preloadedAudio.get(orig).cloneNode(false);
+                }
+                // also check if an encoded form itself was stored as a key
+                if (preloadedAudio.has(enc)) return preloadedAudio.get(enc).cloneNode(false);
+                return null;
+            };
+            audio = tryGetPreloaded(path);
+            if (audio) {
+                // ensure src is set to candidate so playback uses same resolved URL if needed
+                try { audio.src = (audio.src || path); } catch (e) { /* ignore */ }
             } else {
                 audio = new Audio(path);
             }
-            lastAudio = audio;
+
             // attach lightweight error logging
             const onError = () => {
                 audio.removeEventListener('error', onError);
@@ -905,7 +989,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSoundButtons();
         saveState();
         fileUploadInput.value = '';
-        preloadAllSounds(); // Preload new uploaded sounds if needed
+        // Preload newly uploaded sounds (preloadAllSounds will skip already-preloaded or failed paths)
+        preloadAllSounds();
     });
 
     // --- Stop All functionality ---
@@ -1000,33 +1085,124 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Color dropdown / preview ---
         const colorSelect = document.getElementById('edit-sound-color-select');
+        const textColorSelect = document.getElementById('edit-sound-textcolor');
         const colorPreview = document.getElementById('edit-color-preview');
-        // Populate select already present in HTML; set selected value
-        colorSelect.value = sound.color || '';
-        colorPreview.style.backgroundColor = sound.color || 'transparent';
+        // defensive guards: bail early if modal elements are missing (prevents exceptions)
+        if (!colorSelect || !textColorSelect || !colorPreview) {
+            // still open the modal but skip palette population if elements are missing
+            document.getElementById('edit-modal').style.display = 'flex';
+        } else {
+            // Populate both selects from the shared PALETTE so options match
+            if (colorSelect) {
+                colorSelect.innerHTML = '';
+                PALETTE.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.value;
+                    opt.textContent = p.label;
+                    colorSelect.appendChild(opt);
+                });
+            }
+            if (textColorSelect) {
+                textColorSelect.innerHTML = '';
+                PALETTE.forEach(p => {
+                    // For text dropdown show color name; include 'Default' as a valid choice
+                    const opt = document.createElement('option');
+                    opt.value = p.value || '#ffffff'; // treat '' as white default for text dropdown
+                    opt.textContent = p.label;
+                    textColorSelect.appendChild(opt);
+                });
+            }
+            // Set selected values from existing sound data
+            if (colorSelect) colorSelect.value = sound.color || '';
+            if (textColorSelect) textColorSelect.value = sound.textColor || '#ffffff';
 
-        // Text color: new select control
-        const textColorSel = document.getElementById('edit-sound-textcolor-select');
-        textColorSel.value = sound.textColor || '#ffffff';
+             // show preview square and a sample letter to preview text color
+             colorPreview.style.backgroundColor = sound.color || 'transparent';
+             colorPreview.style.display = 'inline-flex';
+             colorPreview.style.alignItems = 'center';
+             colorPreview.style.justifyContent = 'center';
+             colorPreview.style.fontWeight = '700';
+             colorPreview.style.fontSize = '12px';
+             colorPreview.textContent = 'A';
+             // set preview text color from sound.textColor (if set)
+             colorPreview.style.color = sound.textColor || '#ffffff';
+
+        // If user picks a button color, also set the text color select to that value (per your request)
+        colorSelect.onchange = function () {
+            const v = this.value;
+            colorPreview.style.backgroundColor = v || 'transparent';
+            if (v) {
+                textColorSelect.value = v;
+                colorPreview.style.color = v;
+            }
+        };
+
+        // Wire text color change to update preview text color
+        textColorSelect.onchange = function () {
+            colorPreview.style.color = this.value || '#ffffff';
+        };
 
         document.getElementById('edit-modal').style.display = 'flex';
-        document.getElementById('move-up-btn').disabled = (idx === 0);
-        document.getElementById('move-down-btn').disabled = (idx === sounds.length - 1);
-    }
+        } // end defensive guard block for modal elements
 
-    // --- Modal color sync ---
-    // Sync color select -> preview
-    const colorSelectInput = document.getElementById('edit-sound-color-select');
-    const colorPreviewEl = document.getElementById('edit-color-preview');
-    if (colorSelectInput && colorPreviewEl) {
-        colorSelectInput.addEventListener('change', function () {
-            colorPreviewEl.style.backgroundColor = this.value || 'transparent';
-        });
-    }
-    // Text color is now a select of presets
-    const textColorSelect = document.getElementById('edit-sound-textcolor-select');
-    if (textColorSelect) {
-        textColorSelect.addEventListener('change', () => {});
+        // Enable move buttons and wire handlers so the user can reorder while editing
+        const moveUpBtn = document.getElementById('move-up-btn');
+        const moveDownBtn = document.getElementById('move-down-btn');
+        const refreshModalFields = () => {
+            const cur = sounds[editIdx];
+            document.getElementById('edit-sound-name').value = cur.name || '';
+            // update color selects/previews
+            const colorSel = document.getElementById('edit-sound-color-select');
+            const colorPreview = document.getElementById('edit-color-preview');
+            if (colorSel) colorSel.value = cur.color || '';
+            if (colorPreview) {
+                colorPreview.style.backgroundColor = cur.color || 'transparent';
+                colorPreview.style.color = cur.textColor || '#ffffff';
+                colorPreview.textContent = 'A';
+            }
+            if (textColorSelect) textColorSelect.value = cur.textColor || '#ffffff';
+            // update category fields
+            const categorySelectEl = document.getElementById('edit-sound-category');
+            const categoryCustomEl = document.getElementById('edit-sound-category-custom');
+            if (cur.category && Array.from(categorySelectEl.options).some(o => o.value === cur.category)) {
+                categorySelectEl.value = cur.category;
+                categoryCustomEl.value = '';
+                categoryCustomEl.style.display = 'none';
+            } else if (cur.category) {
+                categorySelectEl.value = '__custom__';
+                categoryCustomEl.value = cur.category;
+                categoryCustomEl.style.display = 'inline';
+            } else {
+                categorySelectEl.value = '';
+                categoryCustomEl.value = '';
+                categoryCustomEl.style.display = 'none';
+            }
+            moveUpBtn.disabled = (editIdx === 0);
+            moveDownBtn.disabled = (editIdx === sounds.length - 1);
+        };
+        moveUpBtn.disabled = (idx === 0);
+        moveDownBtn.disabled = (idx === sounds.length - 1);
+        // attach handlers (overwrite previous handlers to avoid duplicates)
+        moveUpBtn.onclick = () => {
+            if (editIdx > 0) {
+                [sounds[editIdx - 1], sounds[editIdx]] = [sounds[editIdx], sounds[editIdx - 1]];
+                editIdx = editIdx - 1;
+                updateCategoryOrderFromSounds();
+                refreshModalFields();
+                renderSoundButtons();
+                saveState();
+            }
+        };
+        moveDownBtn.onclick = () => {
+            if (editIdx < sounds.length - 1) {
+                [sounds[editIdx + 1], sounds[editIdx]] = [sounds[editIdx], sounds[editIdx + 1]];
+                editIdx = editIdx + 1;
+                updateCategoryOrderFromSounds();
+                refreshModalFields();
+                renderSoundButtons();
+                saveState();
+            }
+        };
     }
 
     // --- Modal save logic ---
@@ -1034,10 +1210,10 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         if (editIdx === null) return;
         const name = document.getElementById('edit-sound-name').value.trim();
-        // read preset color from dropdown and text color from new select
+        // read preset color from dropdown and text color from color input
         let color = document.getElementById('edit-sound-color-select').value.trim();
-        if (!color) color = undefined;
-        let textColor = document.getElementById('edit-sound-textcolor-select').value || undefined;
+               if (!color) color = undefined;
+        let textColor = (document.getElementById('edit-sound-textcolor') && document.getElementById('edit-sound-textcolor').value) || undefined;
 
         let category = document.getElementById('edit-sound-category-custom').value.trim();
         if (!category) category = document.getElementById('edit-sound-category').value.trim();
@@ -1051,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeEditModal();
         renderSoundButtons();
         saveState();
-    };
+       };
 
     function closeEditModal() {
         document.getElementById('edit-modal').style.display = 'none';
