@@ -431,11 +431,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadState() {
-        // Enforce canonical defaults — ignore any saved list so this app uses the exact lists you provided.
-        sounds = DEFAULT_SOUNDS.slice();
-        categoryOrder = DEFAULT_CATEGORY_ORDER.slice();
-        // Persist defaults so localStorage won't silently reintroduce old data
-        saveState();
+        // Start from canonical defaults, then merge persisted edits (color/textColor/category/order)
+        try {
+            const savedSounds = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+            const savedOrder = JSON.parse(localStorage.getItem(CATEGORY_ORDER_KEY) || 'null');
+
+            // Start from canonical defaults
+            sounds = DEFAULT_SOUNDS.slice();
+            categoryOrder = DEFAULT_CATEGORY_ORDER.slice();
+
+            // Restore saved category order if present
+            if (Array.isArray(savedOrder) && savedOrder.length) {
+                categoryOrder = savedOrder.slice();
+            }
+
+            // Merge saved sound edits (match by path, fallback to name)
+            if (Array.isArray(savedSounds) && savedSounds.length) {
+                const savedMap = new Map();
+                savedSounds.forEach(s => {
+                    if (!s) return;
+                    if (s.path) savedMap.set(s.path, s);
+                    else if (s.name) savedMap.set('name:' + s.name, s);
+                });
+                sounds.forEach((def, idx) => {
+                    const saved = savedMap.get(def.path) || savedMap.get('name:' + def.name);
+                    if (saved) {
+                        if (typeof saved.color !== 'undefined') sounds[idx].color = saved.color;
+                        if (typeof saved.textColor !== 'undefined') sounds[idx].textColor = saved.textColor;
+                        if (typeof saved.category !== 'undefined') sounds[idx].category = saved.category;
+                    }
+                });
+            }
+
+            // Persist merged state back so localStorage remains in sync
+            saveState();
+        } catch (e) {
+            // If anything fails, fall back to canonical defaults and persist
+            sounds = DEFAULT_SOUNDS.slice();
+            categoryOrder = DEFAULT_CATEGORY_ORDER.slice();
+            saveState();
+        }
     }
 
     // --- Category Order Editor ---
